@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+/*
+  Système de thèmes : chaque thème ne définit que des variables CSS.
+  Les composants utilisent uniquement les classes Tailwind ci-dessous
+  (bg-surface, text-muted, bg-brand…), jamais de couleurs en dur.
+*/
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-header: var(--header);
+  --color-header-ink: var(--header-ink);
+  --color-nav: var(--nav);
+  --color-nav-ink: var(--nav-ink);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-deal: var(--deal);
+  --color-ok: var(--ok);
+  --color-star: var(--star);
+  --color-link: var(--link);
+  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-display: Georgia, "Times New Roman", ui-serif, serif;
+  --radius-card: var(--radius);
+}
+
+:root,
+[data-theme="reine"] {
+  --page: #f4f1f6;
+  --surface: #ffffff;
+  --surface-2: #faf7fb;
+  --ink: #1d1424;
+  --muted: #6b5f73;
+  --line: #e4dce9;
+  --header: #2a1435;
+  --header-ink: #ffffff;
+  --nav: #3b1f4a;
+  --nav-ink: #f3e9f7;
+  --brand: #e0a526;
+  --brand-ink: #2a1435;
+  --brand-soft: #fbf0d6;
+  --accent: #8e3b8f;
+  --accent-ink: #ffffff;
+  --deal: #c2185b;
+  --ok: #1b7f3b;
+  --star: #e0a526;
+  --link: #7a2f86;
+  --radius: 10px;
+}
+
+[data-theme="ocean"] {
+  --page: #eef5f7;
+  --surface: #ffffff;
+  --surface-2: #f5fafb;
+  --ink: #102a30;
+  --muted: #557178;
+  --line: #d6e5e9;
+  --header: #0b3a46;
+  --header-ink: #ffffff;
+  --nav: #0f4c5c;
+  --nav-ink: #e1f2f5;
+  --brand: #ff7a59;
+  --brand-ink: #ffffff;
+  --brand-soft: #ffe8e1;
+  --accent: #127c8c;
+  --accent-ink: #ffffff;
+  --deal: #d6453d;
+  --ok: #19825a;
+  --star: #f2a33a;
+  --link: #0e6f7f;
+  --radius: 14px;
+}
+
+[data-theme="foret"] {
+  --page: #f3f2ec;
+  --surface: #fffefa;
+  --surface-2: #f8f7f1;
+  --ink: #1b241d;
+  --muted: #5e6a5f;
+  --line: #e1e0d4;
+  --header: #17301f;
+  --header-ink: #f8f5e8;
+  --nav: #1f3d2b;
+  --nav-ink: #e8efe5;
+  --brand: #c9a227;
+  --brand-ink: #17301f;
+  --brand-soft: #f5eccc;
+  --accent: #2f6b45;
+  --accent-ink: #ffffff;
+  --deal: #b3412e;
+  --ok: #2f6b45;
+  --star: #c9a227;
+  --link: #2f6b45;
+  --radius: 6px;
+}
+
+[data-theme="minuit"] {
+  --page: #0b0f19;
+  --surface: #141a29;
+  --surface-2: #1a2134;
+  --ink: #e8eaf2;
+  --muted: #9aa3b8;
+  --line: #262f45;
+  --header: #070a12;
+  --header-ink: #ffffff;
+  --nav: #111729;
+  --nav-ink: #c9cfe0;
+  --brand: #8b7cf6;
+  --brand-ink: #0b0f19;
+  --brand-soft: #262046;
+  --accent: #8b7cf6;
+  --accent-ink: #0b0f19;
+  --deal: #ff6b8a;
+  --ok: #4ade80;
+  --star: #fbbf24;
+  --link: #a99dff;
+  --radius: 12px;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
