@@ -5,17 +5,15 @@ import { Price } from "@/components/Price";
 import { ProductImage } from "@/components/ProductImage";
 import { ProductRow } from "@/components/ProductRow";
 import { Stars } from "@/components/Stars";
+import { SubmitButton } from "@/components/SubmitButton";
+import { WishlistButton } from "@/components/WishlistButton";
+import { addToCart, buyNow } from "@/app/actions/cart";
+import { getCurrentUser } from "@/lib/auth";
+import { MAX_QTY } from "@/lib/cart";
 import { getCategory, getProduct, products } from "@/lib/catalog";
 import { formatPrice, shop } from "@/lib/config";
 
-// Regénère la page toutes les heures pour garder la date de livraison à jour.
-export const revalidate = 3600;
-
 type Props = { params: Promise<{ id: string }> };
-
-export function generateStaticParams() {
-  return products.map((p) => ({ id: p.id }));
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = getProduct((await params).id);
@@ -31,6 +29,7 @@ function deliveryDate(days: number) {
 export default async function ProductPage({ params }: Props) {
   const p = getProduct((await params).id);
   if (!p) notFound();
+  const user = await getCurrentUser();
   const cat = getCategory(p.category)!;
   const similar = products.filter((x) => x.category === p.category && x.id !== p.id);
   const sameBrand = products.filter((x) => x.brand === p.brand && x.id !== p.id);
@@ -119,25 +118,25 @@ export default async function ProductPage({ params }: Props) {
             <p className={`mt-3 text-lg font-medium ${p.stock === 0 ? "text-deal" : "text-ok"}`}>
               {p.stock === 0 ? "Actuellement indisponible" : p.stock < 10 ? `Plus que ${p.stock} en stock` : "En stock"}
             </p>
-            <label className="mt-3 flex items-center gap-2 text-sm">
-              Quantité :
-              <select disabled={p.stock === 0} className="rounded-card border border-line bg-surface-2 px-2 py-1">
-                {Array.from({ length: Math.min(10, Math.max(1, p.stock)) }, (_, i) => (
-                  <option key={i}>{i + 1}</option>
-                ))}
-              </select>
-            </label>
-            <button
-              disabled
-              title="Le panier arrive à l'étape 2"
-              className="mt-4 w-full rounded-full bg-brand py-2 font-medium text-brand-ink disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Ajouter au panier
-            </button>
-            <button disabled title="Le paiement arrive à l'étape 2" className="mt-2 w-full rounded-full bg-accent py-2 font-medium text-accent-ink disabled:cursor-not-allowed disabled:opacity-60">
-              Acheter maintenant
-            </button>
-            <p className="mt-2 text-center text-xs text-muted">Panier et paiement : prochaine étape</p>
+            {p.stock > 0 && (
+              <form action={addToCart}>
+                <input type="hidden" name="productId" value={p.id} />
+                <label className="mt-3 flex items-center gap-2 text-sm">
+                  Quantité :
+                  <select name="quantity" className="rounded-card border border-line bg-surface-2 px-2 py-1">
+                    {Array.from({ length: Math.min(MAX_QTY, p.stock) }, (_, i) => (
+                      <option key={i}>{i + 1}</option>
+                    ))}
+                  </select>
+                </label>
+                <SubmitButton pendingText="Ajout…" className="mt-4 w-full rounded-full bg-brand py-2 font-medium text-brand-ink hover:brightness-105">
+                  Ajouter au panier
+                </SubmitButton>
+                <button formAction={buyNow} className="mt-2 w-full rounded-full bg-accent py-2 font-medium text-accent-ink hover:brightness-110">
+                  Acheter maintenant
+                </button>
+              </form>
+            )}
             <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs text-muted">
               <dt>Expédié par</dt>
               <dd>{shop.name}</dd>
@@ -149,9 +148,7 @@ export default async function ProductPage({ params }: Props) {
               <dd>Transaction sécurisée</dd>
             </dl>
             <hr className="my-4 border-line" />
-            <button disabled className="w-full rounded-card border border-line py-1.5 text-sm disabled:opacity-60">
-              ♡ Ajouter à la liste d&apos;envies
-            </button>
+            <WishlistButton productId={p.id} active={!!user?.wishlist.includes(p.id)} back={`/produit/${p.id}`} />
           </aside>
         </div>
 

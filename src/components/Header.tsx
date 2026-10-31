@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { getCurrentUser } from "@/lib/auth";
+import { getCart } from "@/lib/cart";
 import { categories } from "@/lib/catalog";
 import { shop } from "@/lib/config";
 import { Logo } from "./Logo";
@@ -8,7 +10,9 @@ import { ThemeSwitcher } from "./ThemeSwitcher";
 
 const hover = "rounded px-2 py-1 hover:outline hover:outline-1 hover:outline-header-ink/40";
 
-export function Header() {
+export async function Header() {
+  const [user, cart] = await Promise.all([getCurrentUser(), getCart()]);
+  const firstName = user?.name.split(" ")[0];
   return (
     <header className="sticky top-0 z-40 shadow-md">
       <div className="bg-header text-header-ink">
@@ -25,18 +29,22 @@ export function Header() {
           </div>
           <div className="ml-auto flex items-center gap-1 md:ml-0">
             <ThemeSwitcher />
-            <Link href="#" className={`hidden leading-tight sm:block ${hover}`} title="Disponible à l'étape 2">
-              <span className="block text-xs opacity-80">Bonjour, identifiez-vous</span>
+            <Link href={user ? "/compte" : "/connexion"} className={`hidden leading-tight sm:block ${hover}`}>
+              <span className="block text-xs opacity-80">{user ? `Bonjour ${firstName}` : "Bonjour, identifiez-vous"}</span>
               <span className="text-sm font-bold">Compte & listes ▾</span>
             </Link>
-            <Link href="#" className={`hidden leading-tight lg:block ${hover}`} title="Disponible à l'étape 4">
+            <Link href="/compte#commandes" className={`hidden leading-tight lg:block ${hover}`}>
               <span className="block text-xs opacity-80">Retours</span>
               <span className="text-sm font-bold">et commandes</span>
             </Link>
-            <Link href="#" className={`flex items-end gap-1 ${hover}`} title="Disponible à l'étape 2">
+            <Link href="/envies" className={`hidden leading-tight md:block ${hover}`}>
+              <span className="block text-xs opacity-80">Vos</span>
+              <span className="text-sm font-bold">♡ Envies</span>
+            </Link>
+            <Link href="/panier" className={`flex items-end gap-1 ${hover}`}>
               <span className="relative text-2xl">
                 🛒
-                <span className="absolute -top-1 left-3 grid h-5 min-w-5 place-items-center rounded-full bg-brand px-1 text-xs font-bold text-brand-ink">0</span>
+                <span className="absolute -top-1 left-3 grid h-5 min-w-5 place-items-center rounded-full bg-brand px-1 text-xs font-bold text-brand-ink">{cart.count}</span>
               </span>
               <span className="text-sm font-bold">Panier</span>
             </Link>

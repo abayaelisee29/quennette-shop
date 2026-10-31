@@ -2,16 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SearchResults } from "@/components/SearchResults";
-import { categories, getCategory, parseSearchParams } from "@/lib/catalog";
+import { getCategory, parseSearchParams } from "@/lib/catalog";
 
 type Props = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-export function generateStaticParams() {
-  return categories.map((c) => ({ slug: c.slug }));
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const cat = getCategory((await params).slug);

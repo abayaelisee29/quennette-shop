@@ -5,6 +5,7 @@ export const shop = {
   locale: "fr-FR",
   currency: "EUR",
   freeShippingFrom: 35,
+  shippingFee: 4.99,
 };
 
 const fmt = new Intl.NumberFormat(shop.locale, { style: "currency", currency: shop.currency });

@@ -40,7 +40,7 @@ export function Footer() {
         <div>
           <h3 className="mb-3 font-bold">Besoin d&apos;aide ?</h3>
           <ul className="space-y-2 opacity-85">
-            <li>Votre compte</li>
+            <li><Link href="/compte" className="hover:underline">Votre compte</Link></li>
             <li>Livraison et frais</li>
             <li>Retours et remboursements</li>
             <li>Service client</li>
