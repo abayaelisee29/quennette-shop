@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { categories } from "@/lib/catalog";
+import { categories } from "@/lib/categories";
 import { shop } from "@/lib/config";
 
 export function Footer() {
@@ -20,8 +20,8 @@ export function Footer() {
         <div>
           <h3 className="mb-3 font-bold">Vendre sur {shop.name}</h3>
           <ul className="space-y-2 opacity-85">
-            <li>Devenir vendeur</li>
-            <li>Espace vendeur (étape 3)</li>
+            <li><Link href="/vendeur" className="hover:underline">Devenir vendeur</Link></li>
+            <li><Link href="/vendeur" className="hover:underline">Espace vendeur</Link></li>
             <li>Publicité</li>
           </ul>
         </div>

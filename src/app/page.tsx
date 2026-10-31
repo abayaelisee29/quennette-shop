@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { ProductImage } from "@/components/ProductImage";
 import { ProductRow } from "@/components/ProductRow";
-import { categories, discountPercent, products } from "@/lib/catalog";
+import { categories, discountPercent, getProducts } from "@/lib/catalog";
 import { shop } from "@/lib/config";
 
-const bestSellers = [...products].sort((a, b) => b.reviewCount - a.reviewCount).slice(0, 14);
-const deals = products.filter((p) => p.listPrice).sort((a, b) => discountPercent(b) - discountPercent(a)).slice(0, 14);
-const topRated = [...products].sort((a, b) => b.rating - a.rating).slice(0, 14);
-const newest = [...products].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 14);
-
 export default function Home() {
+  const products = getProducts();
+  const bestSellers = [...products].sort((a, b) => b.reviewCount - a.reviewCount).slice(0, 14);
+  const deals = products.filter((p) => p.listPrice).sort((a, b) => discountPercent(b) - discountPercent(a)).slice(0, 14);
+  const topRated = [...products].sort((a, b) => b.rating - a.rating).slice(0, 14);
+  const newest = [...products].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 14);
+
   return (
     <div className="relative">
       {/* Bannière */}

@@ -10,7 +10,8 @@ import { WishlistButton } from "@/components/WishlistButton";
 import { addToCart, buyNow } from "@/app/actions/cart";
 import { getCurrentUser } from "@/lib/auth";
 import { MAX_QTY } from "@/lib/cart";
-import { getCategory, getProduct, products } from "@/lib/catalog";
+import { getCategory, getProduct, getProducts } from "@/lib/catalog";
+import { findShop } from "@/lib/db";
 import { formatPrice, shop } from "@/lib/config";
 
 type Props = { params: Promise<{ id: string }> };
@@ -31,6 +32,8 @@ export default async function ProductPage({ params }: Props) {
   if (!p) notFound();
   const user = await getCurrentUser();
   const cat = getCategory(p.category)!;
+  const products = getProducts();
+  const shopInfo = findShop(p.sellerId);
   const similar = products.filter((x) => x.category === p.category && x.id !== p.id);
   const sameBrand = products.filter((x) => x.brand === p.brand && x.id !== p.id);
   const freeShipping = p.price >= shop.freeShippingFrom;
@@ -73,6 +76,14 @@ export default async function ProductPage({ params }: Props) {
             <Link href={`/recherche?marque=${encodeURIComponent(p.brand)}`} className="text-sm text-link hover:underline">
               Visiter la boutique {p.brand}
             </Link>
+            {shopInfo && shopInfo.ownerId && (
+              <p className="text-sm">
+                Vendu par{" "}
+                <Link href={`/boutique/${shopInfo.slug}`} className="text-link hover:underline">
+                  {shopInfo.name}
+                </Link>
+              </p>
+            )}
             <div className="mt-2 flex items-center gap-2 text-sm">
               <span className="font-medium">{p.rating.toLocaleString("fr-FR")}</span>
               <Stars rating={p.rating} size="md" />
@@ -141,7 +152,7 @@ export default async function ProductPage({ params }: Props) {
               <dt>Expédié par</dt>
               <dd>{shop.name}</dd>
               <dt>Vendu par</dt>
-              <dd>{p.brand}</dd>
+              <dd>{shopInfo ? <Link href={`/boutique/${shopInfo.slug}`} className="text-link hover:underline">{shopInfo.name}</Link> : p.brand}</dd>
               <dt>Retours</dt>
               <dd>Gratuits sous 30 jours</dd>
               <dt>Paiement</dt>

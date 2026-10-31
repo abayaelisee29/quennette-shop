@@ -4,9 +4,11 @@ import { signOut } from "@/app/actions/auth";
 import { requireUser } from "@/lib/auth";
 import { getProduct } from "@/lib/catalog";
 import { formatPrice } from "@/lib/config";
-import { listOrders, type OrderStatus } from "@/lib/db";
+import { listOrders, type OrderStatus, type ShipStatus } from "@/lib/db";
 
 export const metadata: Metadata = { title: "Votre compte" };
+
+const shipLabel: Record<ShipStatus, string> = { a_preparer: "En préparation", expediee: "Expédié", livree: "Livré" };
 
 const statusLabel: Record<OrderStatus, [string, string]> = {
   en_attente: ["En attente de paiement", "text-muted"],
@@ -96,6 +98,10 @@ export default async function AccountPage() {
                         <Link href={`/produit/${i.productId}`} className="flex-1 text-link hover:underline">
                           {i.title}
                         </Link>
+                        <span className={`text-xs ${i.shipStatus === "a_preparer" ? "text-muted" : "text-ok"}`}>
+                          {shipLabel[i.shipStatus ?? "a_preparer"]}
+                          {i.trackingNumber ? ` · suivi ${i.trackingNumber}` : ""}
+                        </span>
                         <span className="text-muted">× {i.quantity}</span>
                         <span className="w-20 text-right">{formatPrice(i.unitPrice * i.quantity)}</span>
                       </li>

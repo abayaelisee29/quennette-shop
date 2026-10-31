@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateOrder, findOrder } from "@/lib/db";
+import { findOrder, markOrderPaid } from "@/lib/db";
 import { stripe, stripeEnabled } from "@/lib/stripe";
 
 // Stripe appelle cette adresse quand un paiement est confirmé.
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     const orderId = session.metadata?.orderId;
     const order = orderId ? await findOrder(orderId) : undefined;
     if (order && order.status === "en_attente" && session.payment_status === "paid") {
-      await updateOrder(order.id, { status: "payee", paidAt: new Date().toISOString() });
+      await markOrderPaid(order.id);
     }
   }
   return NextResponse.json({ received: true });

@@ -1,4 +1,4 @@
-import { discountPercent, type Product } from "@/lib/catalog";
+import { discountPercent, type Product } from "@/lib/products";
 import { formatPrice } from "@/lib/config";
 
 export function Price({ product, size = "md" }: { product: Product; size?: "md" | "lg" }) {

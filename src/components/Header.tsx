@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/auth";
 import { getCart } from "@/lib/cart";
-import { categories } from "@/lib/catalog";
+import { categories } from "@/lib/categories";
 import { shop } from "@/lib/config";
 import { Logo } from "./Logo";
 import { SearchBar } from "./SearchBar";
@@ -61,6 +61,9 @@ export async function Header() {
           </Link>
           <Link href="/recherche?tri=nouveautes" className="rounded px-2 py-1 hover:outline hover:outline-1 hover:outline-nav-ink/50">
             Nouveautés
+          </Link>
+          <Link href="/vendeur" className="rounded px-2 py-1 hover:outline hover:outline-1 hover:outline-nav-ink/50">
+            Vendre sur {shop.name}
           </Link>
           {categories.map((c) => (
             <Link key={c.slug} href={`/categorie/${c.slug}`} className="rounded px-2 py-1 hover:outline hover:outline-1 hover:outline-nav-ink/50">

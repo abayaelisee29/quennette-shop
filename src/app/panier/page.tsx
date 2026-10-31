@@ -6,7 +6,7 @@ import { ProductImage } from "@/components/ProductImage";
 import { ProductRow } from "@/components/ProductRow";
 import { getCurrentUser } from "@/lib/auth";
 import { MAX_QTY, getCart } from "@/lib/cart";
-import { getProduct, products } from "@/lib/catalog";
+import { getProduct, getProducts } from "@/lib/catalog";
 import { formatPrice, shop } from "@/lib/config";
 
 export const metadata: Metadata = { title: "Panier" };
@@ -17,7 +17,7 @@ export default async function CartPage({ searchParams }: { searchParams: Promise
   const added = ajout ? getProduct(ajout) : undefined;
   const missing = shop.freeShippingFrom - cart.subtotal;
   const inCart = new Set(cart.lines.map((l) => l.product.id));
-  const suggestions = products
+  const suggestions = getProducts()
     .filter((p) => !inCart.has(p.id) && (cart.lines.some((l) => l.product.category === p.category) || !cart.lines.length))
     .sort((a, b) => b.reviewCount - a.reviewCount)
     .slice(0, 12);

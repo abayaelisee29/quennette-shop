@@ -9,6 +9,7 @@ type Props = {
   params: SearchParams;
   basePath: string; // "/recherche" ou "/categorie/xxx"
   lockedCategory?: string;
+  lockedShop?: string;
 };
 
 const priceRanges = [
@@ -24,7 +25,7 @@ function hrefWith(basePath: string, params: SearchParams, changes: Partial<Recor
   const next: Record<string, unknown> = { ...params, page: undefined, ...changes };
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(next)) {
-    if (k === "cat" && lockedCategory) continue;
+    if ((k === "cat" && lockedCategory) || k === "shop") continue;
     if (v === undefined || v === false || v === "" || (k === "tri" && v === "pertinence") || (k === "page" && v === 1)) continue;
     if (Array.isArray(v)) v.forEach((x) => qs.append(k, String(x)));
     else qs.set(k, v === true ? "1" : String(v));
@@ -47,8 +48,8 @@ function Check({ on }: { on: boolean }) {
   );
 }
 
-export function SearchResults({ params, basePath, lockedCategory }: Props) {
-  const p = lockedCategory ? { ...params, cat: lockedCategory } : params;
+export function SearchResults({ params, basePath, lockedCategory, lockedShop }: Props) {
+  const p = { ...params, ...(lockedCategory && { cat: lockedCategory }), ...(lockedShop && { shop: lockedShop }) };
   const { items, total, page, pageCount, brands, categoryCounts } = searchProducts(p);
   const href = (changes: Partial<Record<keyof SearchParams, unknown>>) => hrefWith(basePath, p, changes, lockedCategory);
   const activeCat = p.cat ? getCategory(p.cat) : undefined;

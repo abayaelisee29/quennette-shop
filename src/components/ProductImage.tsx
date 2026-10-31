@@ -1,7 +1,15 @@
-import type { Product } from "@/lib/catalog";
+import type { Product } from "@/lib/products";
 
-// Visuel de remplacement en attendant de vraies photos produits (étape 3 : upload par les vendeurs).
+// Photo du vendeur si elle existe, sinon visuel de remplacement (emoji sur fond coloré).
 export function ProductImage({ product, className = "", variant = 0 }: { product: Product; className?: string; variant?: number }) {
+  if (product.imageUrl) {
+    return (
+      <div className={`aspect-square overflow-hidden rounded-card bg-white ${className}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={product.imageUrl} alt={product.title} className="h-full w-full object-contain" style={variant ? { transform: `scale(${1 + variant * 0.15})` } : undefined} />
+      </div>
+    );
+  }
   const h = (product.hue + variant * 40) % 360;
   return (
     <div

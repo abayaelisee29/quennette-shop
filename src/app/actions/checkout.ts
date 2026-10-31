@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, newId } from "@/lib/auth";
 import { getCart, writeRawCart } from "@/lib/cart";
 import { shop } from "@/lib/config";
-import { createOrder, findOrder, updateOrder, type Address } from "@/lib/db";
+import { createOrder, findOrder, markOrderPaid, updateOrder, type Address } from "@/lib/db";
 import { stripe, stripeEnabled } from "@/lib/stripe";
 
 export type CheckoutState = { error?: string; values?: Partial<Address> };
@@ -42,7 +42,14 @@ export async function placeOrder(_: CheckoutState, form: FormData): Promise<Chec
   const order = await createOrder({
     id: newId("cmd"),
     userId: user.id,
-    items: cart.lines.map((l) => ({ productId: l.product.id, title: l.product.title, unitPrice: l.product.price, quantity: l.quantity })),
+    items: cart.lines.map((l) => ({
+      productId: l.product.id,
+      title: l.product.title,
+      unitPrice: l.product.price,
+      quantity: l.quantity,
+      sellerId: l.product.sellerId,
+      shipStatus: "a_preparer" as const,
+    })),
     subtotal: cart.subtotal,
     shipping: cart.shipping,
     total: cart.total,
@@ -89,9 +96,7 @@ export async function payDemo(form: FormData) {
   const user = await getCurrentUser();
   const order = await findOrder(String(form.get("orderId")));
   if (stripeEnabled || !user || !order || order.userId !== user.id) redirect("/compte");
-  if (order.status === "en_attente") {
-    await updateOrder(order.id, { status: "payee", paidAt: new Date().toISOString() });
-  }
+  await markOrderPaid(order.id);
   await writeRawCart({});
   redirect(`/commande/confirmation?commande=${order.id}`);
 }

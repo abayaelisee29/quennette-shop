@@ -1,6 +1,8 @@
 import "server-only";
-import { promises as fs } from "fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "fs";
 import path from "path";
+import type { Product } from "./products";
+import { sampleProducts } from "./sample-data";
 
 // Stockage simple dans un fichier JSON (data/db.json) pour développer sans base de données.
 // Toutes les lectures/écritures passent par ce module : pour passer à Supabase/PostgreSQL,
@@ -13,6 +15,16 @@ export type User = {
   passwordHash: string;
   createdAt: string;
   wishlist: string[]; // ids produits
+  shopId?: string; // boutique si l'utilisateur est vendeur
+};
+
+export type Shop = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  ownerId: string | null; // null pour la boutique maison
+  createdAt: string;
 };
 
 export type Address = {
@@ -25,7 +37,18 @@ export type Address = {
   phone: string;
 };
 
-export type OrderItem = { productId: string; title: string; unitPrice: number; quantity: number };
+export type ShipStatus = "a_preparer" | "expediee" | "livree";
+
+export type OrderItem = {
+  productId: string;
+  title: string;
+  unitPrice: number;
+  quantity: number;
+  sellerId: string;
+  shipStatus: ShipStatus;
+  trackingNumber?: string;
+  shippedAt?: string;
+};
 
 export type OrderStatus = "en_attente" | "payee" | "annulee";
 
@@ -46,35 +69,59 @@ export type Order = {
 
 type Session = { token: string; userId: string; expiresAt: string };
 
-type Data = { users: User[]; sessions: Session[]; orders: Order[] };
+type Data = { users: User[]; sessions: Session[]; orders: Order[]; shops: Shop[]; products: Product[] };
+
+export const HOUSE_SHOP_ID = "shop_queennette";
 
 const FILE = path.join(process.cwd(), "data", "db.json");
 let cache: Data | null = null;
 let queue: Promise<unknown> = Promise.resolve();
 
-async function load(): Promise<Data> {
+// Lecture synchrone : le fichier n'est lu qu'une fois, ensuite tout est en mémoire.
+function data(): Data {
   if (cache) return cache;
-  try {
-    cache = JSON.parse(await fs.readFile(FILE, "utf8")) as Data;
-  } catch {
-    cache = { users: [], sessions: [], orders: [] };
+  let d: Partial<Data> = {};
+  if (existsSync(FILE)) {
+    try {
+      d = JSON.parse(readFileSync(FILE, "utf8"));
+    } catch {}
   }
+  cache = { users: d.users ?? [], sessions: d.sessions ?? [], orders: d.orders ?? [], shops: d.shops ?? [], products: d.products ?? [] };
+  // Premier lancement (ou base de l'étape 2) : on crée la boutique maison et on importe le catalogue d'exemple.
+  if (!cache.shops.some((s) => s.id === HOUSE_SHOP_ID)) {
+    cache.shops.push({
+      id: HOUSE_SHOP_ID,
+      slug: "queennette",
+      name: "Queennette",
+      description: "La sélection officielle Queennette.",
+      ownerId: null,
+      createdAt: new Date().toISOString(),
+    });
+  }
+  if (!cache.products.length) cache.products = sampleProducts(HOUSE_SHOP_ID);
+  for (const o of cache.orders) {
+    for (const i of o.items) {
+      i.sellerId ??= cache.products.find((p) => p.id === i.productId)?.sellerId ?? HOUSE_SHOP_ID;
+      i.shipStatus ??= "a_preparer";
+    }
+  }
+  save(cache);
   return cache;
 }
 
-async function save(data: Data) {
-  await fs.mkdir(path.dirname(FILE), { recursive: true });
+function save(d: Data) {
+  mkdirSync(path.dirname(FILE), { recursive: true });
   const tmp = FILE + ".tmp";
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2));
-  await fs.rename(tmp, FILE);
+  writeFileSync(tmp, JSON.stringify(d, null, 2));
+  renameSync(tmp, FILE);
 }
 
 // Les modifications passent une par une pour éviter d'écraser une écriture concurrente.
 function mutate<T>(fn: (d: Data) => T): Promise<T> {
-  const run = queue.then(async () => {
-    const d = await load();
+  const run = queue.then(() => {
+    const d = data();
     const result = fn(d);
-    await save(d);
+    save(d);
     return result;
   });
   queue = run.catch(() => {});
@@ -84,11 +131,11 @@ function mutate<T>(fn: (d: Data) => T): Promise<T> {
 // ---------- Utilisateurs ----------
 
 export async function findUserByEmail(email: string) {
-  return (await load()).users.find((u) => u.email === email.toLowerCase());
+  return data().users.find((u) => u.email === email.toLowerCase());
 }
 
 export async function findUserById(id: string) {
-  return (await load()).users.find((u) => u.id === id);
+  return data().users.find((u) => u.id === id);
 }
 
 export function createUser(u: Pick<User, "id" | "email" | "name" | "passwordHash">) {
@@ -120,13 +167,79 @@ export function createSession(s: Session) {
 }
 
 export async function findSession(token: string) {
-  const s = (await load()).sessions.find((x) => x.token === token);
+  const s = data().sessions.find((x) => x.token === token);
   return s && s.expiresAt > new Date().toISOString() ? s : undefined;
 }
 
 export function deleteSession(token: string) {
   return mutate((d) => {
     d.sessions = d.sessions.filter((x) => x.token !== token);
+  });
+}
+
+// ---------- Boutiques ----------
+
+export function findShop(id: string) {
+  return data().shops.find((s) => s.id === id);
+}
+
+export function findShopBySlug(slug: string) {
+  return data().shops.find((s) => s.slug === slug);
+}
+
+export function createShop(shop: Shop) {
+  return mutate((d) => {
+    if (d.shops.some((s) => s.slug === shop.slug)) throw new Error("slug déjà pris");
+    d.shops.push(shop);
+    const u = d.users.find((x) => x.id === shop.ownerId);
+    if (u) u.shopId = shop.id;
+    return shop;
+  });
+}
+
+export function updateShop(id: string, changes: Pick<Shop, "name" | "description">) {
+  return mutate((d) => {
+    const s = d.shops.find((x) => x.id === id);
+    if (s) Object.assign(s, changes);
+    return s;
+  });
+}
+
+// ---------- Produits ----------
+
+export function listActiveProducts() {
+  return data().products.filter((p) => p.status === "actif");
+}
+
+export function listShopProducts(shopId: string) {
+  return data()
+    .products.filter((p) => p.sellerId === shopId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export function findProduct(id: string) {
+  return data().products.find((p) => p.id === id);
+}
+
+export function saveProduct(p: Product) {
+  return mutate((d) => {
+    const i = d.products.findIndex((x) => x.id === p.id);
+    if (i >= 0) d.products[i] = p;
+    else d.products.push(p);
+    return p;
+  });
+}
+
+export function deleteProduct(id: string, shopId: string) {
+  return mutate((d) => {
+    d.products = d.products.filter((p) => !(p.id === id && p.sellerId === shopId));
+  });
+}
+
+export function setStock(id: string, shopId: string, stock: number) {
+  return mutate((d) => {
+    const p = d.products.find((x) => x.id === id && x.sellerId === shopId);
+    if (p) p.stock = stock;
   });
 }
 
@@ -140,11 +253,20 @@ export function createOrder(o: Order) {
 }
 
 export async function findOrder(id: string) {
-  return (await load()).orders.find((o) => o.id === id);
+  return data().orders.find((o) => o.id === id);
 }
 
 export async function listOrders(userId: string) {
-  return (await load()).orders.filter((o) => o.userId === userId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return data()
+    .orders.filter((o) => o.userId === userId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+// Commandes payées contenant au moins un article de la boutique.
+export function listShopOrders(shopId: string) {
+  return data()
+    .orders.filter((o) => o.status === "payee" && o.items.some((i) => i.sellerId === shopId))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export function updateOrder(id: string, changes: Partial<Order>) {
@@ -152,5 +274,34 @@ export function updateOrder(id: string, changes: Partial<Order>) {
     const o = d.orders.find((x) => x.id === id);
     if (o) Object.assign(o, changes);
     return o;
+  });
+}
+
+// Passe la commande en « payée » et retire les quantités du stock. Sans effet si déjà payée.
+export function markOrderPaid(id: string) {
+  return mutate((d) => {
+    const o = d.orders.find((x) => x.id === id);
+    if (!o || o.status !== "en_attente") return o;
+    o.status = "payee";
+    o.paidAt = new Date().toISOString();
+    for (const i of o.items) {
+      const p = d.products.find((x) => x.id === i.productId);
+      if (p) p.stock = Math.max(0, p.stock - i.quantity);
+    }
+    return o;
+  });
+}
+
+// Le vendeur met à jour l'expédition de ses articles dans une commande.
+export function setShipStatus(orderId: string, shopId: string, status: ShipStatus, trackingNumber?: string) {
+  return mutate((d) => {
+    const o = d.orders.find((x) => x.id === orderId);
+    if (!o) return;
+    for (const i of o.items) {
+      if (i.sellerId !== shopId) continue;
+      i.shipStatus = status;
+      if (trackingNumber !== undefined) i.trackingNumber = trackingNumber || undefined;
+      if (status === "expediee" && !i.shippedAt) i.shippedAt = new Date().toISOString();
+    }
   });
 }

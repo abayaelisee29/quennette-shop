@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Product } from "@/lib/catalog";
+import type { Product } from "@/lib/products";
 import { Price } from "./Price";
 import { ProductImage } from "./ProductImage";
 import { Stars } from "./Stars";
@@ -14,7 +14,7 @@ export function ProductCard({ product, compact = false }: { product: Product; co
       <div className="mt-3 flex flex-1 flex-col gap-1">
         <h3 className={`line-clamp-2 text-ink group-hover:text-link ${compact ? "text-sm" : "text-[15px]"}`}>{product.title}</h3>
         {!compact && <span className="text-xs text-muted">{product.brand}</span>}
-        <Stars rating={product.rating} count={product.reviewCount} />
+        {product.reviewCount > 0 ? <Stars rating={product.rating} count={product.reviewCount} /> : <span className="text-xs font-bold text-accent">Nouveau</span>}
         <Price product={product} />
         {!compact && (
           <div className="mt-auto pt-1 text-xs">

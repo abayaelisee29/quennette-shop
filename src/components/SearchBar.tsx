@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { categories } from "@/lib/catalog";
+import { categories } from "@/lib/categories";
 
 // Formulaire GET classique : fonctionne même sans JavaScript.
 export function SearchBar() {

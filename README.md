@@ -32,9 +32,24 @@ Pour utiliser Stripe en mode test :
 4. (Optionnel) Webhook : installez la Stripe CLI, lancez `stripe listen --forward-to localhost:3000/api/stripe/webhook`
    et collez le secret `whsec_...` affiché dans `STRIPE_WEBHOOK_SECRET`. La commande est aussi validée au retour sur la page de confirmation, donc le webhook n'est pas obligatoire en local.
 
+## Étape 3 : espace vendeur
+
+- `/vendeur` : n'importe quel client peut ouvrir sa boutique (nom + présentation)
+- Tableau de bord : chiffre d'affaires, commandes, articles à expédier, stock bas
+- `/vendeur/produits` : liste filtrable, modification rapide du stock, ajout/modification/suppression, brouillons
+- Fiche produit vendeur : titre, marque, catégorie, prix, prix barré, stock, livraison express, points forts, **photo**
+- `/vendeur/commandes` : commandes payées contenant ses produits, adresse de livraison, « Marquer comme expédiée » avec n° de suivi, puis « livrée »
+- Le client voit l'état d'expédition et le n° de suivi dans `/compte`
+- Le stock baisse automatiquement quand une commande est payée
+- Vitrine publique de chaque boutique : `/boutique/[nom]`, avec recherche et filtres
+- Le catalogue d'exemple appartient à la boutique maison « Queennette » (`/boutique/queennette`)
+
+Les photos sont enregistrées dans `data/uploads/` et servies par `/api/images/…`.
+
 ### Données
 
-Les comptes et commandes sont enregistrés dans `data/db.json` (créé automatiquement, ignoré par git).
+Les produits, boutiques, comptes et commandes sont enregistrés dans `data/db.json` (créé automatiquement, ignoré par git).
+Au premier lancement, le catalogue d'exemple y est importé. Pour repartir de zéro, supprimez le dossier `data/`.
 C'est suffisant pour développer en local ; avant une mise en ligne, `src/lib/db.ts` sera branché sur Supabase/PostgreSQL.
 
 ## Lancer en local
@@ -52,13 +67,13 @@ Puis ouvrir http://localhost:3000
 | --- | --- |
 | Nom de la boutique, devise, seuil de livraison gratuite | `src/lib/config.ts` |
 | Couleurs d'un thème, ou ajouter un thème | `src/app/globals.css` + `src/lib/themes.ts` |
-| Produits et catégories | `src/lib/catalog.ts` |
+| Catégories | `src/lib/categories.ts` |
+| Catalogue d'exemple importé au premier lancement | `src/lib/sample-data.ts` |
 | En-tête, pied de page | `src/components/Header.tsx`, `Footer.tsx` |
 
 Les composants n'utilisent que des couleurs du thème (`bg-brand`, `text-muted`, `bg-surface`…), donc un nouveau thème s'applique partout sans toucher aux pages.
 
 ## Prochaines étapes
 
-3. Espace vendeur : produits, stocks, commandes
 4. Avis clients, recommandations, suivi de commande
 5. Éditeur de thèmes

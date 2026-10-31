@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ClearCartOnMount } from "@/components/ClearCartOnMount";
 import { OrderSummary } from "@/components/OrderSummary";
 import { requireUser } from "@/lib/auth";
-import { findOrder, updateOrder } from "@/lib/db";
+import { findOrder, markOrderPaid } from "@/lib/db";
 import { stripe, stripeEnabled } from "@/lib/stripe";
 
 export const metadata: Metadata = { title: "Commande confirmée" };
@@ -20,7 +20,7 @@ export default async function ConfirmationPage({ searchParams }: { searchParams:
   if (order.status === "en_attente" && stripeEnabled && session_id && session_id === order.stripeSessionId) {
     const session = await stripe().checkout.sessions.retrieve(session_id);
     if (session.payment_status === "paid") {
-      order = (await updateOrder(order.id, { status: "payee", paidAt: new Date().toISOString() })) ?? order;
+      order = (await markOrderPaid(order.id)) ?? order;
     }
   }
   const paid = order.status === "payee";

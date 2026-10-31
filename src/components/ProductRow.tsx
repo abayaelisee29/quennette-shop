@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Product } from "@/lib/catalog";
+import type { Product } from "@/lib/products";
 import { ProductCard } from "./ProductCard";
 
 export function ProductRow({ title, products, href }: { title: string; products: Product[]; href?: string }) {
