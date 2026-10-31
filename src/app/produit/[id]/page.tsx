@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { Price } from "@/components/Price";
 import { ProductImage } from "@/components/ProductImage";
 import { ProductRow } from "@/components/ProductRow";
+import { BoughtTogether } from "@/components/BoughtTogether";
+import { ProductReviews } from "@/components/ProductReviews";
+import { RecentlyViewedTracker } from "@/components/RecentlyViewedTracker";
 import { Stars } from "@/components/Stars";
 import { SubmitButton } from "@/components/SubmitButton";
 import { WishlistButton } from "@/components/WishlistButton";
@@ -13,8 +16,12 @@ import { MAX_QTY } from "@/lib/cart";
 import { getCategory, getProduct, getProducts } from "@/lib/catalog";
 import { findShop } from "@/lib/db";
 import { formatPrice, shop } from "@/lib/config";
+import { alsoBought, boughtTogether, recentlyViewed } from "@/lib/recommendations";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ avis_note?: string; avis_tri?: string; avis?: string }>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = getProduct((await params).id);
@@ -27,22 +34,24 @@ function deliveryDate(days: number) {
   return d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 }
 
-export default async function ProductPage({ params }: Props) {
+export default async function ProductPage({ params, searchParams }: Props) {
   const p = getProduct((await params).id);
   if (!p) notFound();
   const user = await getCurrentUser();
   const cat = getCategory(p.category)!;
   const products = getProducts();
   const shopInfo = findShop(p.sellerId);
-  const similar = products.filter((x) => x.category === p.category && x.id !== p.id);
   const sameBrand = products.filter((x) => x.brand === p.brand && x.id !== p.id);
   const freeShipping = p.price >= shop.freeShippingFrom;
-  // Répartition des notes simulée à partir de la note moyenne (les vrais avis arrivent à l'étape 4).
-  const dist = [5, 4, 3, 2, 1].map((s) => Math.max(1, Math.round(100 * Math.exp(-Math.abs(s - p.rating) * 1.3))));
-  const distTotal = dist.reduce((a, b) => a + b, 0);
+  const sp = await searchParams;
+  const note = Number(sp.avis_note) || undefined;
+  const also = alsoBought(p);
+  const together = boughtTogether(p);
+  const recent = (await recentlyViewed(p.id)).slice(0, 14);
 
   return (
     <div className="bg-surface">
+      <RecentlyViewedTracker productId={p.id} />
       <div className="mx-auto max-w-[1500px] px-4 py-4">
         <nav className="mb-4 text-sm text-muted">
           <Link href="/" className="hover:underline">
@@ -164,41 +173,21 @@ export default async function ProductPage({ params }: Props) {
         </div>
 
         <hr className="my-8 border-line" />
-        <ProductRow title="Produits similaires" products={similar} href={`/categorie/${cat.slug}`} />
-        {sameBrand.length > 0 && (
-          <div className="mt-4">
-            <ProductRow title={`Autres produits ${p.brand}`} products={sameBrand} />
-          </div>
-        )}
+        <div className="space-y-4">
+          <BoughtTogether product={p} others={together} />
+          <ProductRow title="Les clients ayant acheté cet article ont également acheté" products={also} href={`/categorie/${cat.slug}`} />
+          {sameBrand.length > 0 && <ProductRow title={`Autres produits ${p.brand}`} products={sameBrand} />}
+        </div>
 
         <hr className="my-8 border-line" />
-        <section id="avis" className="grid gap-8 md:grid-cols-[300px_1fr]">
-          <div>
-            <h2 className="text-xl font-bold">Commentaires client</h2>
-            <div className="mt-2 flex items-center gap-2">
-              <Stars rating={p.rating} size="md" />
-              <span className="font-medium">{p.rating.toLocaleString("fr-FR")} sur 5</span>
-            </div>
-            <p className="text-sm text-muted">{p.reviewCount.toLocaleString("fr-FR")} évaluations</p>
-            <div className="mt-4 space-y-2">
-              {dist.map((d, i) => {
-                const pct = Math.round((d / distTotal) * 100);
-                return (
-                  <div key={i} className="flex items-center gap-2 text-sm">
-                    <span className="w-16 text-link">{5 - i} étoiles</span>
-                    <span className="h-5 flex-1 overflow-hidden rounded border border-line bg-surface-2">
-                      <span className="block h-full bg-star" style={{ width: `${pct}%` }} />
-                    </span>
-                    <span className="w-9 text-right text-muted">{pct} %</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div className="rounded-card border border-dashed border-line p-6 text-muted">
-            Les avis détaillés des clients (texte, photos, votes utiles) seront ajoutés à l&apos;étape 4.
-          </div>
-        </section>
+        <ProductReviews product={p} user={user} filter={note} sort={sp.avis_tri} thanks={sp.avis === "merci"} />
+
+        {recent.length > 0 && (
+          <>
+            <hr className="my-8 border-line" />
+            <ProductRow title="Vos articles consultés récemment" products={recent} />
+          </>
+        )}
       </div>
     </div>
   );

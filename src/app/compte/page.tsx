@@ -64,7 +64,14 @@ export default async function AccountPage() {
       ) : (
         <div className="space-y-4">
           {paid.map((o) => {
-            const [label, color] = statusLabel[o.status];
+            const [label, color] =
+              o.status !== "payee"
+                ? statusLabel[o.status]
+                : o.items.every((i) => i.shipStatus === "livree")
+                  ? ["Livrée", "text-ok"]
+                  : o.items.some((i) => i.shipStatus !== "a_preparer")
+                    ? ["Expédiée · en cours de livraison", "text-ok"]
+                    : statusLabel.payee;
             return (
               <article key={o.id} className="overflow-hidden rounded-card border border-line bg-surface">
                 <header className="flex flex-wrap gap-x-8 gap-y-1 bg-surface-2 px-4 py-3 text-xs text-muted">
@@ -90,7 +97,12 @@ export default async function AccountPage() {
                   </span>
                 </header>
                 <div className="p-4">
-                  <p className={`mb-3 font-bold ${color}`}>{label}</p>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className={`font-bold ${color}`}>{label}</p>
+                    <Link href={`/compte/commandes/${o.id}`} className="rounded-full bg-brand px-4 py-1.5 text-sm font-medium text-brand-ink">
+                      Suivre la commande
+                    </Link>
+                  </div>
                   <ul className="space-y-2">
                     {o.items.map((i) => (
                       <li key={i.productId} className="flex items-center gap-3 text-sm">

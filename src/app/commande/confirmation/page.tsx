@@ -50,8 +50,8 @@ export default async function ConfirmationPage({ searchParams }: { searchParams:
           Commande n° {order.id.toUpperCase()} · livrée à {order.address.fullName}, {order.address.city}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/compte#commandes" className="rounded-full bg-brand px-5 py-2 font-medium text-brand-ink">
-            Voir mes commandes
+          <Link href={`/compte/commandes/${order.id}`} className="rounded-full bg-brand px-5 py-2 font-medium text-brand-ink">
+            Suivre ma commande
           </Link>
           <Link href="/" className="rounded-full border border-line px-5 py-2 hover:bg-surface-2">
             Continuer mes achats

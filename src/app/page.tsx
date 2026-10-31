@@ -2,10 +2,14 @@ import Link from "next/link";
 import { ProductImage } from "@/components/ProductImage";
 import { ProductRow } from "@/components/ProductRow";
 import { categories, discountPercent, getProducts } from "@/lib/catalog";
+import { getCurrentUser } from "@/lib/auth";
 import { shop } from "@/lib/config";
+import { forYou, recentlyViewed } from "@/lib/recommendations";
 
-export default function Home() {
+export default async function Home() {
   const products = getProducts();
+  const user = await getCurrentUser();
+  const [recent, recommended] = await Promise.all([recentlyViewed(), forYou(user)]);
   const bestSellers = [...products].sort((a, b) => b.reviewCount - a.reviewCount).slice(0, 14);
   const deals = products.filter((p) => p.listPrice).sort((a, b) => discountPercent(b) - discountPercent(a)).slice(0, 14);
   const topRated = [...products].sort((a, b) => b.rating - a.rating).slice(0, 14);
@@ -67,6 +71,8 @@ export default function Home() {
           })}
         </div>
 
+        {recommended.length > 0 && <ProductRow title={user ? `Recommandé pour vous, ${user.name.split(" ")[0]}` : "Inspiré de vos consultations"} products={recommended} />}
+        {recent.length > 0 && <ProductRow title="Vos articles consultés récemment" products={recent.slice(0, 14)} />}
         <ProductRow title="Offres du jour" products={deals} href="/recherche?promo=1" />
         <ProductRow title="Meilleures ventes" products={bestSellers} href="/recherche?tri=avis" />
 

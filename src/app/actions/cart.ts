@@ -72,3 +72,15 @@ export async function moveWishToCart(form: FormData) {
   if (id && user.wishlist.includes(id)) await toggleWishlist(user.id, id);
   redirect(id ? `/panier?ajout=${id}` : "/envies");
 }
+
+// « Fréquemment achetés ensemble » : ajoute plusieurs produits d'un coup.
+export async function addManyToCart(form: FormData) {
+  const cart = await readRawCart();
+  for (const id of form.getAll("productId").map(String)) {
+    const product = getProduct(id);
+    if (!product || product.stock === 0) continue;
+    cart[id] = Math.min(MAX_QTY, product.stock, (cart[id] ?? 0) + 1);
+  }
+  await writeRawCart(cart);
+  redirect("/panier");
+}

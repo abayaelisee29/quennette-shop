@@ -46,6 +46,19 @@ Pour utiliser Stripe en mode test :
 
 Les photos sont enregistrées dans `data/uploads/` et servies par `/api/images/…`.
 
+## Étape 4 : avis, recommandations, suivi
+
+- **Avis clients** : note de 1 à 5, titre, commentaire, mention « Achat vérifié » si le client a payé ce produit,
+  bouton « Utile », tri (plus utiles / plus récents), filtre par nombre d'étoiles, modification et suppression de son avis.
+  La note moyenne et le nombre d'évaluations du produit sont mis à jour automatiquement. Un vendeur ne peut pas noter ses propres produits.
+- **Recommandations** (`src/lib/recommendations.ts`) :
+  - « Fréquemment achetés ensemble » avec ajout groupé au panier (basé sur les vraies commandes, complété par catégorie/marque)
+  - « Les clients ayant acheté cet article ont également acheté »
+  - « Vos articles consultés récemment » (cookie `qs_vus`, 20 derniers produits)
+  - « Recommandé pour vous » sur l'accueil (consultations, liste d'envies et achats)
+- **Suivi de commande** : `/compte/commandes/[id]` avec une frise par colis (commandée, payée, expédiée, livrée),
+  n° de suivi du vendeur, date de livraison estimée, adresse, « Acheter à nouveau » et « Écrire un commentaire »
+
 ### Données
 
 Les produits, boutiques, comptes et commandes sont enregistrés dans `data/db.json` (créé automatiquement, ignoré par git).
@@ -75,5 +88,4 @@ Les composants n'utilisent que des couleurs du thème (`bg-brand`, `text-muted`,
 
 ## Prochaines étapes
 
-4. Avis clients, recommandations, suivi de commande
 5. Éditeur de thèmes
