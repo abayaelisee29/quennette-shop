@@ -5,6 +5,9 @@ export const themes = [
   { id: "ocean", name: "Océan", swatch: ["#0f4c5c", "#ff7a59"] },
   { id: "foret", name: "Forêt", swatch: ["#1f3d2b", "#c9a227"] },
   { id: "minuit", name: "Minuit", swatch: ["#0b0f19", "#8b7cf6"] },
+  { id: "kente", name: "Kente", swatch: ["#0d3b2a", "#f2b705"] },
+  { id: "ivoire", name: "Ivoire", swatch: ["#111111", "#b08d57"] },
+  { id: "lagune", name: "Lagune", swatch: ["#0aa3a3", "#ff6f59"] },
 ] as const;
 
 export type ThemeId = (typeof themes)[number]["id"];

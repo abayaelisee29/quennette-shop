@@ -18,7 +18,7 @@ export default async function Home() {
   return (
     <div className="relative">
       {/* Bannière */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-nav via-accent to-header text-nav-ink">
+      <section className="relative overflow-hidden bg-hero text-nav-ink">
         <div className="mx-auto grid max-w-[1500px] items-center gap-6 px-6 pt-10 pb-36 md:grid-cols-2 md:pt-14 md:pb-44">
           <div>
             <p className="font-semibold tracking-wide text-brand uppercase">Nouvelle boutique</p>

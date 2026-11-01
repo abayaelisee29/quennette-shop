@@ -20,7 +20,7 @@ export default async function ShopPage({ params, searchParams }: Props) {
   if (!shop) notFound();
   return (
     <>
-      <div className="bg-gradient-to-r from-header to-nav text-nav-ink">
+      <div className="bg-hero text-nav-ink">
         <div className="mx-auto flex max-w-[1500px] items-center gap-4 px-4 py-8">
           <span className="grid h-16 w-16 place-items-center rounded-full bg-brand font-display text-3xl font-bold text-brand-ink">{shop.name[0]?.toUpperCase()}</span>
           <div>

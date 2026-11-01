@@ -18,7 +18,7 @@ export async function Header() {
       <div className="bg-header text-header-ink">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 md:flex-nowrap">
           <Logo />
-          <div className={`hidden leading-tight lg:block ${hover}`}>
+          <div className={`hidden shrink-0 leading-tight whitespace-nowrap lg:block ${hover}`}>
             <span className="block text-xs opacity-80">Livraison</span>
             <span className="text-sm font-bold">📍 Choisir l&apos;adresse</span>
           </div>
@@ -27,7 +27,7 @@ export async function Header() {
               <SearchBar />
             </Suspense>
           </div>
-          <div className="ml-auto flex items-center gap-1 md:ml-0">
+          <div className="ml-auto flex items-center gap-1 whitespace-nowrap md:ml-0">
             <ThemeSwitcher />
             <Link href={user ? "/compte" : "/connexion"} className={`hidden leading-tight sm:block ${hover}`}>
               <span className="block text-xs opacity-80">{user ? `Bonjour ${firstName}` : "Bonjour, identifiez-vous"}</span>

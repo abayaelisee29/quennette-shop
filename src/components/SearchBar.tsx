@@ -7,7 +7,7 @@ import { categories } from "@/lib/categories";
 export function SearchBar() {
   const sp = useSearchParams();
   return (
-    <form action="/recherche" role="search" className="flex h-11 w-full overflow-hidden rounded-card bg-surface ring-brand focus-within:ring-3">
+    <form action="/recherche" role="search" className="flex h-11 w-full overflow-hidden rounded-card border border-line bg-surface ring-brand focus-within:ring-3">
       <select
         name="cat"
         defaultValue={sp.get("cat") ?? ""}

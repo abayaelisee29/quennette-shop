@@ -20,7 +20,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   if (!cat) notFound();
   return (
     <>
-      <div className="bg-gradient-to-r from-nav to-accent text-nav-ink">
+      <div className="bg-hero text-nav-ink">
         <div className="mx-auto flex max-w-[1500px] items-center gap-4 px-4 py-6">
           <span className="text-5xl">{cat.emoji}</span>
           <div>

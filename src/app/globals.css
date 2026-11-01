@@ -25,9 +25,13 @@
   --color-ok: var(--ok);
   --color-star: var(--star);
   --color-link: var(--link);
-  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
-  --font-display: Georgia, "Times New Roman", ui-serif, serif;
+  --font-sans: var(--body-font);
+  --font-display: var(--title-font);
   --radius-card: var(--radius);
+}
+
+@utility bg-hero {
+  background: var(--hero);
 }
 
 :root,
@@ -52,6 +56,10 @@
   --star: #e0a526;
   --link: #7a2f86;
   --radius: 10px;
+  --body-font: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --title-font: Georgia, "Times New Roman", ui-serif, serif;
+  /* Fond des bannières (accueil, catégories, boutiques) */
+  --hero: linear-gradient(135deg, var(--nav), var(--accent) 55%, var(--header));
 }
 
 [data-theme="ocean"] {
@@ -122,6 +130,86 @@
   --link: #a99dff;
   --radius: 12px;
   color-scheme: dark;
+}
+
+/* Kente : vert profond, or et rouge, inspiré des tissages d'Afrique de l'Ouest */
+[data-theme="kente"] {
+  --page: #f7f1e3;
+  --surface: #fffdf7;
+  --surface-2: #fbf5e6;
+  --ink: #1f1a10;
+  --muted: #6e6450;
+  --line: #e8dcc0;
+  --header: #0d3b2a;
+  --header-ink: #fdf6e3;
+  --nav: #145c3f;
+  --nav-ink: #f3ead2;
+  --brand: #f2b705;
+  --brand-ink: #1f1a10;
+  --brand-soft: #fdf0c4;
+  --accent: #c8102e;
+  --accent-ink: #ffffff;
+  --deal: #c8102e;
+  --ok: #145c3f;
+  --star: #f2a900;
+  --link: #a30d26;
+  --radius: 4px;
+  --title-font: "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
+  --hero:
+    repeating-linear-gradient(90deg, transparent 0 64px, rgba(242, 183, 5, 0.22) 64px 76px, transparent 76px 88px, rgba(200, 16, 46, 0.25) 88px 96px, transparent 96px 140px),
+    linear-gradient(160deg, #145c3f, #0d3b2a);
+}
+
+/* Ivoire : minimal et premium, noir, ivoire et or fin */
+[data-theme="ivoire"] {
+  --page: #f6f3ed;
+  --surface: #fffefb;
+  --surface-2: #f9f6f0;
+  --ink: #141414;
+  --muted: #6f6a60;
+  --line: #e4ded2;
+  --header: #111111;
+  --header-ink: #f6f3ed;
+  --nav: #1c1c1c;
+  --nav-ink: #d9d3c7;
+  --brand: #c4a46c;
+  --brand-ink: #141414;
+  --brand-soft: #efe7d6;
+  --accent: #141414;
+  --accent-ink: #f6f3ed;
+  --deal: #9b2c2c;
+  --ok: #3d6b4f;
+  --star: #b08d57;
+  --link: #8a6a3a;
+  --radius: 0px;
+  --title-font: Didot, "Bodoni MT", "Playfair Display", Georgia, serif;
+  --hero: linear-gradient(120deg, #111111 0%, #1c1c1c 60%, #3a3122 100%);
+}
+
+/* Lagune : frais et lumineux, turquoise, sable et corail, formes arrondies */
+[data-theme="lagune"] {
+  --page: #f2f8f8;
+  --surface: #ffffff;
+  --surface-2: #f4fafa;
+  --ink: #12313a;
+  --muted: #58767e;
+  --line: #d7e9ea;
+  --header: #ffffff;
+  --header-ink: #12313a;
+  --nav: #0aa3a3;
+  --nav-ink: #ffffff;
+  --brand: #ff6f59;
+  --brand-ink: #ffffff;
+  --brand-soft: #ffe6e1;
+  --accent: #0a8f8f;
+  --accent-ink: #ffffff;
+  --deal: #e04f3a;
+  --ok: #138a63;
+  --star: #ffb020;
+  --link: #08807f;
+  --radius: 18px;
+  --title-font: "Avenir Next", Avenir, "Nunito", "Segoe UI", ui-rounded, sans-serif;
+  --hero: linear-gradient(135deg, #0aa3a3, #0a8f8f 50%, #5cc8c0);
 }
 
 body {
