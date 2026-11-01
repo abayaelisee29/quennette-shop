@@ -8,7 +8,7 @@ Marketplace en ligne construite avec Next.js 16, React 19 et Tailwind CSS 4.
 - Pages catégories : `/categorie/[slug]`
 - Fiche produit : `/produit/[id]` (galerie, encadré d'achat, caractéristiques, produits similaires, résumé des notes)
 - Recherche : `/recherche?q=…` avec filtres (catégorie, livraison express, note, prix, marques, promo, stock), tri et pagination
-- 4 thèmes interchangeables (Reine, Océan, Forêt, Minuit), mémorisés dans le navigateur
+- Thèmes interchangeables, mémorisés dans le navigateur (voir étape 5)
 - Catalogue d'exemple : 8 catégories, 64 produits
 
 ## Étape 2 : comptes, panier, paiement
@@ -59,6 +59,15 @@ Les photos sont enregistrées dans `data/uploads/` et servies par `/api/images/�
 - **Suivi de commande** : `/compte/commandes/[id]` avec une frise par colis (commandée, payée, expédiée, livrée),
   n° de suivi du vendeur, date de livraison estimée, adresse, « Acheter à nouveau » et « Écrire un commentaire »
 
+## Étape 5 : thèmes
+
+7 thèmes au choix dans le menu « Thème » de l'en-tête : **Reine** (par défaut), Océan, Forêt, Minuit, Kente, Ivoire et Lagune.
+Chaque thème définit ses couleurs, l'arrondi des angles, la police des titres (`--title-font`) et le fond des bannières (`--hero`).
+
+- Changer le thème par défaut : `defaultTheme` dans `src/lib/themes.ts`
+- Ajouter un thème : copier un bloc `[data-theme="…"]` dans `src/app/globals.css`, changer les valeurs, puis l'ajouter à la liste de `src/lib/themes.ts`
+- Retirer un thème du menu : supprimer sa ligne dans `src/lib/themes.ts`
+
 ### Données
 
 Les produits, boutiques, comptes et commandes sont enregistrés dans `data/db.json` (créé automatiquement, ignoré par git).
@@ -88,4 +97,4 @@ Les composants n'utilisent que des couleurs du thème (`bg-brand`, `text-muted`,
 
 ## Prochaines étapes
 
-5. Éditeur de thèmes
+Les 5 étapes du plan sont terminées. Suites possibles : base Supabase pour la mise en ligne, déploiement, e-mails de confirmation.
