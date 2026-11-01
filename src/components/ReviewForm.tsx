@@ -2,12 +2,15 @@
 
 import { useActionState, useState } from "react";
 import { submitReview, type ReviewFormState } from "@/app/actions/reviews";
+import { plural } from "@/lib/i18n";
+import { useI18n } from "./I18nProvider";
 import { SubmitButton } from "./SubmitButton";
 
 const input = "mt-1 w-full rounded-card border border-line bg-surface px-3 py-2 font-normal outline-none focus:border-accent focus:ring-2 focus:ring-accent/30";
-const labels = ["", "Très déçu", "Déçu", "Correct", "Satisfait", "Excellent"];
 
 export function ReviewForm({ productId, defaults }: { productId: string; defaults?: { rating: number; title: string; body: string } }) {
+  const { t } = useI18n();
+  const f = t.reviewForm;
   const [state, action] = useActionState<ReviewFormState, FormData>(submitReview, {});
   const [rating, setRating] = useState(Number(state.values?.rating) || defaults?.rating || 0);
   const [hover, setHover] = useState(0);
@@ -24,13 +27,13 @@ export function ReviewForm({ productId, defaults }: { productId: string; default
         </p>
       )}
       <fieldset>
-        <legend className="text-sm font-bold">Note globale</legend>
+        <legend className="text-sm font-bold">{f.overall}</legend>
         <div className="mt-1 flex items-center gap-1" onMouseLeave={() => setHover(0)}>
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n}
               type="button"
-              aria-label={`${n} étoile${n > 1 ? "s" : ""}`}
+              aria-label={plural(n, t.reviews.star)}
               aria-pressed={rating === n}
               onClick={() => setRating(n)}
               onMouseEnter={() => setHover(n)}
@@ -39,19 +42,19 @@ export function ReviewForm({ productId, defaults }: { productId: string; default
               ★
             </button>
           ))}
-          <span className="ml-2 text-sm text-muted">{labels[shown]}</span>
+          <span className="ml-2 text-sm text-muted">{f.labels[shown]}</span>
         </div>
       </fieldset>
       <label className="block text-sm font-bold">
-        Titre de votre commentaire
-        <input name="title" defaultValue={v.title} maxLength={100} required placeholder="Ce qu'il faut retenir" className={input} />
+        {f.headline}
+        <input name="title" defaultValue={v.title} maxLength={100} required placeholder={f.headlinePh} className={input} />
       </label>
       <label className="block text-sm font-bold">
-        Votre commentaire
-        <textarea name="body" defaultValue={v.body} rows={6} maxLength={3000} required placeholder="Qu'avez-vous aimé ou moins aimé ? Comment l'utilisez-vous ?" className={input} />
+        {f.body}
+        <textarea name="body" defaultValue={v.body} rows={6} maxLength={3000} required placeholder={f.bodyPh} className={input} />
       </label>
-      <SubmitButton pendingText="Publication…" className="rounded-full bg-brand px-6 py-2 font-medium text-brand-ink">
-        Publier
+      <SubmitButton pendingText={f.submitting} className="rounded-full bg-brand px-6 py-2 font-medium text-brand-ink">
+        {f.submit}
       </SubmitButton>
     </form>
   );

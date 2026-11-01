@@ -1,45 +1,40 @@
 import "server-only";
-import { getCategory, categories } from "./categories";
-import { listActiveProducts, findProduct } from "./db";
-import type { Product } from "./products";
+import { categoryDefs, getCategories, getCategory } from "./categories";
+import { findProduct, listActiveProducts } from "./db";
+import type { Lang } from "./i18n";
+import { localizeProduct, type Product } from "./products";
 
-export { categories, getCategory } from "./categories";
+export { getCategories, getCategory } from "./categories";
 export { discountPercent, type Product } from "./products";
 
-// Produits en vente (statut « actif »), toutes boutiques confondues.
-export function getProducts(): Product[] {
-  return listActiveProducts();
+// Produits en vente (statut « actif »), toutes boutiques confondues, dans la langue demandée.
+export function getProducts(lang: Lang): Product[] {
+  return listActiveProducts().map((p) => localizeProduct(p, lang));
 }
 
 // Un produit visible publiquement (les brouillons sont exclus).
-export function getProduct(id: string) {
+export function getProduct(id: string, lang: Lang) {
   const p = findProduct(id);
-  return p && p.status === "actif" ? p : undefined;
+  return p && p.status === "actif" ? localizeProduct(p, lang) : undefined;
 }
 
 // ---------- Recherche et filtres ----------
 
-export const sortOptions = [
-  { value: "pertinence", label: "Pertinence" },
-  { value: "prix-asc", label: "Prix croissant" },
-  { value: "prix-desc", label: "Prix décroissant" },
-  { value: "note", label: "Meilleures notes" },
-  { value: "avis", label: "Plus d'avis" },
-  { value: "nouveautes", label: "Nouveautés" },
-] as const;
+export const SORTS = ["relevance", "price-asc", "price-desc", "rating", "reviews", "newest"] as const;
+export type Sort = (typeof SORTS)[number];
 
 export type SearchParams = {
   q?: string;
   cat?: string;
   shop?: string; // boutique (page vitrine), jamais lu depuis l'URL
-  marque?: string[];
+  brand?: string[];
   min?: number;
   max?: number;
-  note?: number;
-  rapide?: boolean;
-  promo?: boolean;
+  rating?: number;
+  fast?: boolean;
+  deal?: boolean;
   stock?: boolean;
-  tri?: string;
+  sort?: Sort;
   page?: number;
 };
 
@@ -57,32 +52,38 @@ export function parseSearchParams(raw: Record<string, string | string[] | undefi
     const n = v ? Number(v) : NaN;
     return Number.isFinite(n) && n >= 0 ? n : undefined;
   };
+  const sort = one("sort");
   return {
     q: one("q")?.trim() || undefined,
     cat: one("cat") || undefined,
-    marque: many("marque"),
+    brand: many("brand"),
     min: num("min"),
     max: num("max"),
-    note: num("note"),
-    rapide: one("rapide") === "1",
-    promo: one("promo") === "1",
+    rating: num("rating"),
+    fast: one("fast") === "1",
+    deal: one("deal") === "1",
     stock: one("stock") === "1",
-    tri: one("tri") || "pertinence",
+    sort: (SORTS as readonly string[]).includes(sort ?? "") ? (sort as Sort) : "relevance",
     page: Math.max(1, Math.floor(num("page") ?? 1)),
   };
 }
 
-export function searchProducts(params: SearchParams) {
+export function searchProducts(params: SearchParams, lang: Lang) {
   const terms = params.q ? normalize(params.q).split(/\s+/).filter(Boolean) : [];
+  const catNames = new Map(categoryDefs.map((c) => [c.slug, `${c.en.name} ${c.fr.name}`]));
 
   // Base : texte + catégorie. Les facettes (marques, fourchettes) sont calculées sur cette base.
-  const base = getProducts()
-    .map((p) => {
-      if (params.cat && p.category !== params.cat) return null;
-      if (params.shop && p.sellerId !== params.shop) return null;
+  // La recherche porte sur l'anglais et le français, quelle que soit la langue affichée.
+  const base = listActiveProducts()
+    .map((raw) => {
+      if (params.cat && raw.category !== params.cat) return null;
+      if (params.shop && raw.sellerId !== params.shop) return null;
+      const p = localizeProduct(raw, lang);
       if (!terms.length) return { p, score: 0 };
-      const hay = normalize(`${p.title} ${p.brand} ${getCategory(p.category)?.name} ${p.features.join(" ")}`);
-      const title = normalize(p.title);
+      const hay = normalize(
+        [raw.title, raw.fr?.title, raw.brand, catNames.get(raw.category), raw.features.join(" "), raw.fr?.features.join(" ")].filter(Boolean).join(" ")
+      );
+      const title = normalize(`${raw.title} ${raw.fr?.title ?? ""}`);
       let score = 0;
       for (const t of terms) {
         if (!hay.includes(t)) return null;
@@ -93,30 +94,31 @@ export function searchProducts(params: SearchParams) {
     .filter((x): x is { p: Product; score: number } => x !== null);
 
   const brands = [...new Set(base.map((x) => x.p.brand))].sort((a, b) => a.localeCompare(b));
-  const categoryCounts = categories
+  const categoryCounts = getCategories(lang)
     .map((c) => ({ ...c, count: base.filter((x) => x.p.category === c.slug).length }))
     .filter((c) => c.count > 0);
 
   let results = base.filter(({ p }) => {
-    if (params.marque?.length && !params.marque.includes(p.brand)) return false;
+    if (params.brand?.length && !params.brand.includes(p.brand)) return false;
     if (params.min !== undefined && p.price < params.min) return false;
     if (params.max !== undefined && p.price > params.max) return false;
-    if (params.note !== undefined && p.rating < params.note) return false;
-    if (params.rapide && !p.fastDelivery) return false;
-    if (params.promo && !p.listPrice) return false;
+    if (params.rating !== undefined && p.rating < params.rating) return false;
+    if (params.fast && !p.fastDelivery) return false;
+    if (params.deal && !p.listPrice) return false;
     if (params.stock && p.stock === 0) return false;
     return true;
   });
 
-  const sorters: Record<string, (a: (typeof results)[0], b: (typeof results)[0]) => number> = {
-    pertinence: (a, b) => b.score - a.score || b.p.reviewCount * b.p.rating - a.p.reviewCount * a.p.rating,
-    "prix-asc": (a, b) => a.p.price - b.p.price,
-    "prix-desc": (a, b) => b.p.price - a.p.price,
-    note: (a, b) => b.p.rating - a.p.rating || b.p.reviewCount - a.p.reviewCount,
-    avis: (a, b) => b.p.reviewCount - a.p.reviewCount,
-    nouveautes: (a, b) => b.p.createdAt.localeCompare(a.p.createdAt),
+  type Row = (typeof results)[0];
+  const sorters: Record<Sort, (a: Row, b: Row) => number> = {
+    relevance: (a, b) => b.score - a.score || b.p.reviewCount * b.p.rating - a.p.reviewCount * a.p.rating,
+    "price-asc": (a, b) => a.p.price - b.p.price,
+    "price-desc": (a, b) => b.p.price - a.p.price,
+    rating: (a, b) => b.p.rating - a.p.rating || b.p.reviewCount - a.p.reviewCount,
+    reviews: (a, b) => b.p.reviewCount - a.p.reviewCount,
+    newest: (a, b) => b.p.createdAt.localeCompare(a.p.createdAt),
   };
-  results = [...results].sort(sorters[params.tri ?? "pertinence"] ?? sorters.pertinence);
+  results = [...results].sort(sorters[params.sort ?? "relevance"]);
 
   const total = results.length;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -128,5 +130,6 @@ export function searchProducts(params: SearchParams) {
     pageCount,
     brands,
     categoryCounts,
+    category: params.cat ? getCategory(params.cat, lang) : undefined,
   };
 }

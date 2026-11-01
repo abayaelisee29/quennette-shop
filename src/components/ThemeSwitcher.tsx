@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { THEME_STORAGE_KEY, themes, defaultTheme } from "@/lib/themes";
+import { THEME_STORAGE_KEY, themes, defaultTheme, type ThemeId } from "@/lib/themes";
+import { useI18n } from "./I18nProvider";
 
 export function ThemeSwitcher() {
+  const { t } = useI18n();
+  const name = (id: string) => t.themes[id as ThemeId] ?? id;
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState<string>(defaultTheme);
   const ref = useRef<HTMLDivElement>(null);
@@ -33,21 +36,21 @@ export function ThemeSwitcher() {
         aria-expanded={open}
         className="flex flex-col items-start rounded px-2 py-1 text-left leading-tight hover:outline hover:outline-1 hover:outline-header-ink/40"
       >
-        <span className="text-xs opacity-80">Thème</span>
-        <span className="text-sm font-bold">{themes.find((t) => t.id === current)?.name ?? "Reine"} ▾</span>
+        <span className="text-xs opacity-80">{t.themes.label}</span>
+        <span className="text-sm font-bold">{name(current)} ▾</span>
       </button>
       {open && (
         <ul className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-card border border-line bg-surface py-1 text-ink shadow-xl">
-          {themes.map((t) => (
-            <li key={t.id}>
-              <button onClick={() => choose(t.id)} className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-surface-2">
+          {themes.map((th) => (
+            <li key={th.id}>
+              <button onClick={() => choose(th.id)} className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-surface-2">
                 <span className="flex">
-                  {t.swatch.map((c) => (
+                  {th.swatch.map((c) => (
                     <span key={c} className="h-4 w-4 rounded-full border border-white/40 first:mr-[-4px]" style={{ background: c }} />
                   ))}
                 </span>
-                <span className={t.id === current ? "font-bold" : ""}>{t.name}</span>
-                {t.id === current && <span className="ml-auto text-ok">✓</span>}
+                <span className={th.id === current ? "font-bold" : ""}>{name(th.id)}</span>
+                {th.id === current && <span className="ml-auto text-ok">✓</span>}
               </button>
             </li>
           ))}

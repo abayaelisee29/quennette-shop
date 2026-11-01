@@ -1,24 +1,19 @@
 import Link from "next/link";
-import { PAGE_SIZE, categories, getCategory, searchProducts, sortOptions, type SearchParams } from "@/lib/catalog";
-import { formatPrice } from "@/lib/config";
+import { PAGE_SIZE, SORTS, getCategories, searchProducts, type SearchParams } from "@/lib/catalog";
+import { fill } from "@/lib/i18n";
+import { getI18n } from "@/lib/i18n/server";
 import { AutoSubmitSelect } from "./AutoSubmitSelect";
 import { ProductCard } from "./ProductCard";
 import { Stars } from "./Stars";
 
 type Props = {
   params: SearchParams;
-  basePath: string; // "/recherche" ou "/categorie/xxx"
+  basePath: string; // "/search" ou "/category/xxx"
   lockedCategory?: string;
   lockedShop?: string;
 };
 
-const priceRanges = [
-  { label: "Moins de 20 €", max: 20 },
-  { label: "20 à 50 €", min: 20, max: 50 },
-  { label: "50 à 100 €", min: 50, max: 100 },
-  { label: "100 à 250 €", min: 100, max: 250 },
-  { label: "250 € et plus", min: 250 },
-];
+const priceRanges: { min?: number; max?: number }[] = [{ max: 20 }, { min: 20, max: 50 }, { min: 50, max: 100 }, { min: 100, max: 250 }, { min: 250 }];
 
 // Construit l'URL avec les filtres actuels + des modifications. Une valeur `undefined` retire le filtre.
 function hrefWith(basePath: string, params: SearchParams, changes: Partial<Record<keyof SearchParams, unknown>>, lockedCategory?: string) {
@@ -26,7 +21,7 @@ function hrefWith(basePath: string, params: SearchParams, changes: Partial<Recor
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(next)) {
     if ((k === "cat" && lockedCategory) || k === "shop") continue;
-    if (v === undefined || v === false || v === "" || (k === "tri" && v === "pertinence") || (k === "page" && v === 1)) continue;
+    if (v === undefined || v === false || v === "" || (k === "sort" && v === "relevance") || (k === "page" && v === 1)) continue;
     if (Array.isArray(v)) v.forEach((x) => qs.append(k, String(x)));
     else qs.set(k, v === true ? "1" : String(v));
   }
@@ -48,72 +43,79 @@ function Check({ on }: { on: boolean }) {
   );
 }
 
-export function SearchResults({ params, basePath, lockedCategory, lockedShop }: Props) {
+export async function SearchResults({ params, basePath, lockedCategory, lockedShop }: Props) {
+  const { lang, t, fmt } = await getI18n();
+  const s = t.search;
   const p = { ...params, ...(lockedCategory && { cat: lockedCategory }), ...(lockedShop && { shop: lockedShop }) };
-  const { items, total, page, pageCount, brands, categoryCounts } = searchProducts(p);
+  const { items, total, page, pageCount, brands, categoryCounts, category: activeCat } = searchProducts(p, lang);
   const href = (changes: Partial<Record<keyof SearchParams, unknown>>) => hrefWith(basePath, p, changes, lockedCategory);
-  const activeCat = p.cat ? getCategory(p.cat) : undefined;
-  const hasFilters = !!(p.marque?.length || p.min !== undefined || p.max !== undefined || p.note || p.rapide || p.promo || p.stock);
+  const hasFilters = !!(p.brand?.length || p.min !== undefined || p.max !== undefined || p.rating || p.fast || p.deal || p.stock);
 
   const filters = (
     <div className="space-y-6">
       {!lockedCategory && (
         <div>
-          <h3 className="mb-2 font-bold">Catégorie</h3>
-          {p.cat && <FilterLink href={href({ cat: undefined })}>‹ Toutes les catégories</FilterLink>}
+          <h3 className="mb-2 font-bold">{s.category}</h3>
+          {p.cat && <FilterLink href={href({ cat: undefined })}>{s.allCategories}</FilterLink>}
           {(p.cat ? categoryCounts.filter((c) => c.slug === p.cat) : categoryCounts).map((c) => (
             <FilterLink key={c.slug} href={href({ cat: c.slug })} active={p.cat === c.slug}>
               {c.emoji} {c.name} <span className="text-muted">({c.count})</span>
             </FilterLink>
           ))}
-          {categoryCounts.length === 0 && <p className="text-sm text-muted">Aucune</p>}
+          {categoryCounts.length === 0 && <p className="text-sm text-muted">{s.none}</p>}
         </div>
       )}
 
       <div>
-        <h3 className="mb-2 font-bold">Livraison</h3>
-        <FilterLink href={href({ rapide: !p.rapide })} active={p.rapide}>
-          <Check on={!!p.rapide} /> ⚡ Livraison express
+        <h3 className="mb-2 font-bold">{s.delivery}</h3>
+        <FilterLink href={href({ fast: !p.fast })} active={p.fast}>
+          <Check on={!!p.fast} /> {s.express}
         </FilterLink>
       </div>
 
       <div>
-        <h3 className="mb-2 font-bold">Avis clients</h3>
+        <h3 className="mb-2 font-bold">{s.customerReviews}</h3>
         {[4, 3].map((n) => (
-          <FilterLink key={n} href={href({ note: p.note === n ? undefined : n })} active={p.note === n}>
-            <Stars rating={n} /> et plus
+          <FilterLink key={n} href={href({ rating: p.rating === n ? undefined : n })} active={p.rating === n}>
+            <Stars rating={n} /> {s.andUp}
           </FilterLink>
         ))}
       </div>
 
       <div>
-        <h3 className="mb-2 font-bold">Prix</h3>
+        <h3 className="mb-2 font-bold">{s.price}</h3>
         {priceRanges.map((r) => {
           const on = p.min === r.min && p.max === r.max;
+          const label =
+            r.min === undefined
+              ? fill(s.under, { a: fmt.price(r.max!) })
+              : r.max === undefined
+                ? fill(s.over, { a: fmt.price(r.min) })
+                : fill(s.between, { a: fmt.price(r.min), b: fmt.price(r.max) });
           return (
-            <FilterLink key={r.label} href={href(on ? { min: undefined, max: undefined } : { min: r.min, max: r.max })} active={on}>
-              {r.label}
+            <FilterLink key={label} href={href(on ? { min: undefined, max: undefined } : { min: r.min, max: r.max })} active={on}>
+              {label}
             </FilterLink>
           );
         })}
         <form action={basePath} className="mt-2 flex items-center gap-1">
-          {Object.entries({ q: p.q, cat: lockedCategory ? undefined : p.cat, note: p.note, tri: p.tri !== "pertinence" ? p.tri : undefined, rapide: p.rapide ? 1 : undefined, promo: p.promo ? 1 : undefined, stock: p.stock ? 1 : undefined }).map(
+          {Object.entries({ q: p.q, cat: lockedCategory ? undefined : p.cat, rating: p.rating, sort: p.sort !== "relevance" ? p.sort : undefined, fast: p.fast ? 1 : undefined, deal: p.deal ? 1 : undefined, stock: p.stock ? 1 : undefined }).map(
             ([k, v]) => v !== undefined && <input key={k} type="hidden" name={k} value={String(v)} />
           )}
-          {p.marque?.map((m) => <input key={m} type="hidden" name="marque" value={m} />)}
-          <input name="min" type="number" min={0} placeholder="Min" defaultValue={p.min} className="w-16 rounded border border-line bg-surface px-2 py-1 text-sm" />
-          <input name="max" type="number" min={0} placeholder="Max" defaultValue={p.max} className="w-16 rounded border border-line bg-surface px-2 py-1 text-sm" />
-          <button className="rounded-full border border-line bg-surface-2 px-3 py-1 text-sm hover:bg-line">OK</button>
+          {p.brand?.map((m) => <input key={m} type="hidden" name="brand" value={m} />)}
+          <input name="min" type="number" min={0} placeholder={s.min} defaultValue={p.min} className="w-16 rounded border border-line bg-surface px-2 py-1 text-sm" />
+          <input name="max" type="number" min={0} placeholder={s.max} defaultValue={p.max} className="w-16 rounded border border-line bg-surface px-2 py-1 text-sm" />
+          <button className="rounded-full border border-line bg-surface-2 px-3 py-1 text-sm hover:bg-line">{s.go}</button>
         </form>
       </div>
 
       <div>
-        <h3 className="mb-2 font-bold">Marques</h3>
+        <h3 className="mb-2 font-bold">{s.brands}</h3>
         {brands.map((b) => {
-          const on = !!p.marque?.includes(b);
-          const nextBrands = on ? p.marque!.filter((x) => x !== b) : [...(p.marque ?? []), b];
+          const on = !!p.brand?.includes(b);
+          const nextBrands = on ? p.brand!.filter((x) => x !== b) : [...(p.brand ?? []), b];
           return (
-            <FilterLink key={b} href={href({ marque: nextBrands })} active={on}>
+            <FilterLink key={b} href={href({ brand: nextBrands })} active={on}>
               <Check on={on} /> {b}
             </FilterLink>
           );
@@ -121,12 +123,12 @@ export function SearchResults({ params, basePath, lockedCategory, lockedShop }: 
       </div>
 
       <div>
-        <h3 className="mb-2 font-bold">Offres et disponibilité</h3>
-        <FilterLink href={href({ promo: !p.promo })} active={p.promo}>
-          <Check on={!!p.promo} /> En promotion
+        <h3 className="mb-2 font-bold">{s.dealsAvailability}</h3>
+        <FilterLink href={href({ deal: !p.deal })} active={p.deal}>
+          <Check on={!!p.deal} /> {s.onSale}
         </FilterLink>
         <FilterLink href={href({ stock: !p.stock })} active={p.stock}>
-          <Check on={!!p.stock} /> Exclure les produits indisponibles
+          <Check on={!!p.stock} /> {s.excludeOut}
         </FilterLink>
       </div>
     </div>
@@ -138,36 +140,36 @@ export function SearchResults({ params, basePath, lockedCategory, lockedShop }: 
       <div className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
           <p>
-            {total === 0 ? "Aucun résultat" : `${(page - 1) * PAGE_SIZE + 1}-${Math.min(page * PAGE_SIZE, total)} sur ${total} résultat${total > 1 ? "s" : ""}`}
+            {total === 0 ? s.noResults : total === 1 ? s.single : fill(s.range, { from: (page - 1) * PAGE_SIZE + 1, to: Math.min(page * PAGE_SIZE, total), total: fmt.number(total) })}
             {p.q && (
               <>
                 {" "}
-                pour <b className="text-deal">« {p.q} »</b>
+                {s.for} <b className="text-deal">“{p.q}”</b>
               </>
             )}
             {activeCat && !lockedCategory && (
               <>
                 {" "}
-                dans <b>{activeCat.name}</b>
+                {s.in} <b>{activeCat.name}</b>
               </>
             )}
           </p>
           <form action={basePath} className="flex items-center gap-2">
-            {[...new URLSearchParams(href({ tri: undefined }).split("?")[1] ?? "").entries()].map(([k, v], i) => (
+            {[...new URLSearchParams(href({ sort: undefined }).split("?")[1] ?? "").entries()].map(([k, v], i) => (
               <input key={k + i} type="hidden" name={k} value={v} />
             ))}
-            <label htmlFor="tri" className="text-muted">
-              Trier par
+            <label htmlFor="sort" className="text-muted">
+              {s.sortBy}
             </label>
-            <AutoSubmitSelect id="tri" name="tri" defaultValue={p.tri} className="rounded-card border border-line bg-surface-2 px-2 py-1">
-              {sortOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
+            <AutoSubmitSelect id="sort" name="sort" defaultValue={p.sort} className="rounded-card border border-line bg-surface-2 px-2 py-1">
+              {SORTS.map((o) => (
+                <option key={o} value={o}>
+                  {s.sorts[o]}
                 </option>
               ))}
             </AutoSubmitSelect>
             <noscript>
-              <button className="rounded-full bg-brand px-3 py-1 font-medium text-brand-ink">Trier</button>
+              <button className="rounded-full bg-brand px-3 py-1 font-medium text-brand-ink">{s.sortSubmit}</button>
             </noscript>
           </form>
         </div>
@@ -179,44 +181,44 @@ export function SearchResults({ params, basePath, lockedCategory, lockedShop }: 
 
         <div className="min-w-0 flex-1">
           <details className="mb-4 rounded-card border border-line bg-surface p-3 md:hidden">
-            <summary className="cursor-pointer font-bold">Filtres{hasFilters ? " (actifs)" : ""}</summary>
+            <summary className="cursor-pointer font-bold">{hasFilters ? s.filtersActive : s.filters}</summary>
             <div className="mt-4">{filters}</div>
           </details>
 
           {hasFilters && (
             <div className="mb-4 flex flex-wrap gap-2 text-sm">
-              {p.marque?.map((m) => (
-                <Chip key={m} href={href({ marque: p.marque!.filter((x) => x !== m) })}>
+              {p.brand?.map((m) => (
+                <Chip key={m} href={href({ brand: p.brand!.filter((x) => x !== m) })}>
                   {m}
                 </Chip>
               ))}
               {(p.min !== undefined || p.max !== undefined) && (
                 <Chip href={href({ min: undefined, max: undefined })}>
                   {p.min !== undefined && p.max !== undefined
-                    ? `${formatPrice(p.min)} – ${formatPrice(p.max)}`
+                    ? `${fmt.price(p.min)} – ${fmt.price(p.max)}`
                     : p.min !== undefined
-                      ? `Dès ${formatPrice(p.min)}`
-                      : `Jusqu'à ${formatPrice(p.max!)}`}
+                      ? fill(s.from, { a: fmt.price(p.min) })
+                      : fill(s.upTo, { a: fmt.price(p.max!) })}
                 </Chip>
               )}
-              {p.note && <Chip href={href({ note: undefined })}>{p.note}★ et plus</Chip>}
-              {p.rapide && <Chip href={href({ rapide: false })}>Livraison express</Chip>}
-              {p.promo && <Chip href={href({ promo: false })}>En promotion</Chip>}
-              {p.stock && <Chip href={href({ stock: false })}>En stock</Chip>}
-              <Link href={hrefWith(basePath, { q: p.q, cat: p.cat, tri: p.tri }, {}, lockedCategory)} className="px-2 py-1 text-link hover:underline">
-                Tout effacer
+              {p.rating && <Chip href={href({ rating: undefined })}>{fill(s.ratingChip, { n: p.rating })}</Chip>}
+              {p.fast && <Chip href={href({ fast: false })}>{s.express}</Chip>}
+              {p.deal && <Chip href={href({ deal: false })}>{s.onSale}</Chip>}
+              {p.stock && <Chip href={href({ stock: false })}>{s.inStock}</Chip>}
+              <Link href={hrefWith(basePath, { q: p.q, cat: p.cat, sort: p.sort }, {}, lockedCategory)} className="px-2 py-1 text-link hover:underline">
+                {s.clearAll}
               </Link>
             </div>
           )}
 
-          <h2 className="mb-3 text-xl font-bold">Résultats</h2>
+          <h2 className="mb-3 text-xl font-bold">{s.results}</h2>
           {items.length === 0 ? (
             <div className="rounded-card border border-line bg-surface p-8 text-center">
-              <p className="text-lg font-bold">Aucun produit ne correspond à votre recherche.</p>
-              <p className="mt-2 text-muted">Essayez d&apos;autres mots-clés ou retirez des filtres.</p>
+              <p className="text-lg font-bold">{s.noMatch}</p>
+              <p className="mt-2 text-muted">{s.tryOther}</p>
               <div className="mt-4 flex flex-wrap justify-center gap-2">
-                {categories.slice(0, 4).map((c) => (
-                  <Link key={c.slug} href={`/categorie/${c.slug}`} className="rounded-full border border-line px-3 py-1 text-sm hover:bg-surface-2">
+                {getCategories(lang).slice(0, 4).map((c) => (
+                  <Link key={c.slug} href={`/category/${c.slug}`} className="rounded-full border border-line px-3 py-1 text-sm hover:bg-surface-2">
                     {c.emoji} {c.name}
                   </Link>
                 ))}
@@ -231,14 +233,14 @@ export function SearchResults({ params, basePath, lockedCategory, lockedShop }: 
           )}
 
           {pageCount > 1 && (
-            <nav className="mt-8 flex justify-center gap-1" aria-label="Pagination">
-              {page > 1 && <PageLink href={href({ page: page - 1 })}>‹ Précédent</PageLink>}
+            <nav className="mt-8 flex justify-center gap-1" aria-label={s.pagination}>
+              {page > 1 && <PageLink href={href({ page: page - 1 })}>{s.prev}</PageLink>}
               {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
                 <PageLink key={n} href={href({ page: n })} active={n === page}>
                   {n}
                 </PageLink>
               ))}
-              {page < pageCount && <PageLink href={href({ page: page + 1 })}>Suivant ›</PageLink>}
+              {page < pageCount && <PageLink href={href({ page: page + 1 })}>{s.next}</PageLink>}
             </nav>
           )}
         </div>

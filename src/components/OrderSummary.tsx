@@ -1,24 +1,27 @@
-import { formatPrice } from "@/lib/config";
+import { fill } from "@/lib/i18n";
+import { getI18n } from "@/lib/i18n/server";
 
-export function OrderSummary({ subtotal, shipping, total, count }: { subtotal: number; shipping: number; total: number; count: number }) {
+export async function OrderSummary({ subtotal, shipping, total, count }: { subtotal: number; shipping: number; total: number; count: number }) {
+  const { t, fmt } = await getI18n();
+  const c = t.checkout;
   return (
     <div className="rounded-card border border-line bg-surface p-5 text-sm">
-      <h2 className="mb-3 text-lg font-bold">Récapitulatif</h2>
+      <h2 className="mb-3 text-lg font-bold">{c.summary}</h2>
       <dl className="space-y-1">
         <div className="flex justify-between">
-          <dt>Articles ({count}) :</dt>
-          <dd>{formatPrice(subtotal)}</dd>
+          <dt>{fill(c.itemsCount, { n: count })}</dt>
+          <dd>{fmt.price(subtotal)}</dd>
         </div>
         <div className="flex justify-between">
-          <dt>Livraison :</dt>
-          <dd>{shipping ? formatPrice(shipping) : "Gratuite"}</dd>
+          <dt>{c.shippingLabel}</dt>
+          <dd>{shipping ? fmt.price(shipping) : c.free}</dd>
         </div>
         <div className="mt-2 flex justify-between border-t border-line pt-2 text-lg font-bold text-deal">
-          <dt>Montant total :</dt>
-          <dd>{formatPrice(total)}</dd>
+          <dt>{c.total}</dt>
+          <dd>{fmt.price(total)}</dd>
         </div>
       </dl>
-      <p className="mt-2 text-xs text-muted">TVA incluse</p>
+      <p className="mt-2 text-xs text-muted">{c.currencyNote}</p>
     </div>
   );
 }

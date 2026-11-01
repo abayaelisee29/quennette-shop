@@ -6,6 +6,7 @@ import { getCurrentUser, newId } from "@/lib/auth";
 import { getCart, writeRawCart } from "@/lib/cart";
 import { shop } from "@/lib/config";
 import { createOrder, findOrder, markOrderPaid, updateOrder, type Address } from "@/lib/db";
+import { getI18n } from "@/lib/i18n/server";
 import { stripe, stripeEnabled } from "@/lib/stripe";
 
 export type CheckoutState = { error?: string; values?: Partial<Address> };
@@ -19,8 +20,10 @@ async function siteUrl() {
 
 export async function placeOrder(_: CheckoutState, form: FormData): Promise<CheckoutState> {
   const user = await getCurrentUser();
-  if (!user) redirect("/connexion?suite=/commande");
+  if (!user) redirect("/signin?next=/checkout");
 
+  const { lang, t } = await getI18n();
+  const e = t.checkout.errors;
   const field = (k: string) => String(form.get(k) ?? "").trim();
   const address: Address = {
     fullName: field("fullName"),
@@ -32,12 +35,12 @@ export async function placeOrder(_: CheckoutState, form: FormData): Promise<Chec
     phone: field("phone"),
   };
   const missing = (["fullName", "line1", "postalCode", "city", "country", "phone"] as const).filter((k) => !address[k]);
-  if (missing.length) return { error: "Merci de remplir tous les champs obligatoires de l'adresse.", values: address };
+  if (missing.length) return { error: e.address, values: address };
 
   // Le total est recalculé côté serveur à partir du catalogue, jamais repris du navigateur.
-  const cart = await getCart();
-  if (!cart.lines.length) redirect("/panier");
-  if (cart.unavailable.length) return { error: "Certains articles ne sont plus disponibles en quantité suffisante. Modifiez votre panier.", values: address };
+  const cart = await getCart(lang);
+  if (!cart.lines.length) redirect("/cart");
+  if (cart.unavailable.length) return { error: e.unavailable, values: address };
 
   const order = await createOrder({
     id: newId("cmd"),
@@ -59,7 +62,7 @@ export async function placeOrder(_: CheckoutState, form: FormData): Promise<Chec
     createdAt: new Date().toISOString(),
   });
 
-  if (!stripeEnabled) redirect(`/commande/paiement-demo?commande=${order.id}`);
+  if (!stripeEnabled) redirect(`/checkout/demo-payment?order=${order.id}`);
 
   const base = await siteUrl();
   const currency = shop.currency.toLowerCase();
@@ -76,16 +79,16 @@ export async function placeOrder(_: CheckoutState, form: FormData): Promise<Chec
         price_data: { currency, unit_amount: Math.round(i.unitPrice * 100), product_data: { name: i.title } },
       })),
       ...(order.shipping
-        ? [{ quantity: 1, price_data: { currency, unit_amount: Math.round(order.shipping * 100), product_data: { name: "Livraison" } } }]
+        ? [{ quantity: 1, price_data: { currency, unit_amount: Math.round(order.shipping * 100), product_data: { name: t.checkout.shippingLine } } }]
         : []),
     ],
-    success_url: `${base}/commande/confirmation?commande=${order.id}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${base}/commande?annule=1`,
+    success_url: `${base}/checkout/confirmation?order=${order.id}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${base}/checkout?canceled=1`,
     });
-  } catch (e) {
-    console.error("Stripe :", e);
+  } catch (error) {
+    console.error("Stripe:", error);
     await updateOrder(order.id, { status: "annulee" });
-    return { error: "Le paiement Stripe n'a pas pu démarrer. Vérifiez la clé STRIPE_SECRET_KEY dans .env.local.", values: address };
+    return { error: e.stripe, values: address };
   }
   await updateOrder(order.id, { stripeSessionId: session.id });
   redirect(session.url!);
@@ -95,8 +98,8 @@ export async function placeOrder(_: CheckoutState, form: FormData): Promise<Chec
 export async function payDemo(form: FormData) {
   const user = await getCurrentUser();
   const order = await findOrder(String(form.get("orderId")));
-  if (stripeEnabled || !user || !order || order.userId !== user.id) redirect("/compte");
+  if (stripeEnabled || !user || !order || order.userId !== user.id) redirect("/account");
   await markOrderPaid(order.id);
   await writeRawCart({});
-  redirect(`/commande/confirmation?commande=${order.id}`);
+  redirect(`/checkout/confirmation?order=${order.id}`);
 }

@@ -6,7 +6,7 @@ import { stripe, stripeEnabled } from "@/lib/stripe";
 // En local : stripe listen --forward-to localhost:3000/api/stripe/webhook
 export async function POST(req: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!stripeEnabled || !secret) return NextResponse.json({ error: "Webhook non configuré" }, { status: 400 });
+  if (!stripeEnabled || !secret) return NextResponse.json({ error: "Webhook not configured" }, { status: 400 });
 
   const signature = req.headers.get("stripe-signature") ?? "";
   let event;

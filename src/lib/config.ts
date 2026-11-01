@@ -1,15 +1,8 @@
-// Réglages de la boutique : nom, devise, langue. Modifiez ici pour changer partout.
+// Réglages de la boutique : nom, devise, livraison. Modifiez ici pour changer partout.
+// Les textes affichés sont dans src/lib/i18n (en.ts et fr.ts).
 export const shop = {
   name: "Queennette",
-  tagline: "Tout ce qu'il vous faut, livré comme une reine",
-  locale: "fr-FR",
-  currency: "EUR",
+  currency: "USD",
   freeShippingFrom: 35,
   shippingFee: 4.99,
 };
-
-const fmt = new Intl.NumberFormat(shop.locale, { style: "currency", currency: shop.currency });
-
-export function formatPrice(n: number) {
-  return fmt.format(n);
-}

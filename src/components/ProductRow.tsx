@@ -1,15 +1,17 @@
 import Link from "next/link";
+import { getI18n } from "@/lib/i18n/server";
 import type { Product } from "@/lib/products";
 import { ProductCard } from "./ProductCard";
 
-export function ProductRow({ title, products, href }: { title: string; products: Product[]; href?: string }) {
+export async function ProductRow({ title, products, href }: { title: string; products: Product[]; href?: string }) {
+  const { t } = await getI18n();
   return (
     <section className="rounded-card bg-surface p-4">
       <div className="mb-3 flex items-baseline gap-4">
         <h2 className="text-xl font-bold text-ink">{title}</h2>
         {href && (
           <Link href={href} className="text-sm text-link hover:underline">
-            Voir plus
+            {t.home.seeMore}
           </Link>
         )}
       </div>

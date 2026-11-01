@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { getProduct, type Product } from "./catalog";
 import { shop } from "./config";
+import { DEFAULT_LANG, type Lang } from "./i18n";
 
 // Le panier est gardé dans un cookie : il marche sans compte et survit à la fermeture du navigateur.
 // Les prix ne sont jamais lus depuis le cookie, toujours depuis le catalogue.
@@ -31,11 +32,11 @@ export function shippingFor(subtotal: number) {
   return subtotal === 0 || subtotal >= shop.freeShippingFrom ? 0 : shop.shippingFee;
 }
 
-export async function getCart() {
+export async function getCart(lang: Lang = DEFAULT_LANG) {
   const raw = await readRawCart();
   const lines: CartLine[] = [];
   for (const [id, q] of Object.entries(raw)) {
-    const product = getProduct(id);
+    const product = getProduct(id, lang);
     const quantity = Math.min(MAX_QTY, Math.max(0, Math.floor(Number(q))));
     if (!product || !quantity) continue;
     lines.push({ product, quantity, lineTotal: Math.round(product.price * quantity * 100) / 100 });

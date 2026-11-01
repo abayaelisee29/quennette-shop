@@ -58,7 +58,7 @@ export const getCurrentUser = cache(async () => {
 // Redirige vers la connexion si personne n'est connecté, puis revient sur `returnTo`.
 export async function requireUser(returnTo: string) {
   const user = await getCurrentUser();
-  if (!user) redirect(`/connexion?suite=${encodeURIComponent(returnTo)}`);
+  if (!user) redirect(`/signin?next=${encodeURIComponent(returnTo)}`);
   return user;
 }
 

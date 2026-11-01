@@ -7,7 +7,7 @@ import { findShop } from "./db";
 export async function requireSeller(returnTo: string) {
   const user = await requireUser(returnTo);
   const shop = user.shopId ? findShop(user.shopId) : undefined;
-  if (!shop) redirect("/vendeur");
+  if (!shop) redirect("/seller");
   return { user, shop };
 }
 

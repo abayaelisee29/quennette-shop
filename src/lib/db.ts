@@ -2,6 +2,7 @@ import "server-only";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "fs";
 import path from "path";
 import type { Product } from "./products";
+import { legacyCategorySlugs } from "./categories";
 import { sampleProducts } from "./sample-data";
 
 // Stockage simple dans un fichier JSON (data/db.json) pour développer sans base de données.
@@ -108,12 +109,21 @@ function data(): Data {
       id: HOUSE_SHOP_ID,
       slug: "queennette",
       name: "Queennette",
-      description: "La sélection officielle Queennette.",
+      description: "The official Queennette selection.",
       ownerId: null,
       createdAt: new Date().toISOString(),
     });
   }
   if (!cache.products.length) cache.products = sampleProducts(HOUSE_SHOP_ID);
+  // Passage à l'anglais : catégories renommées, catalogue d'exemple en anglais avec traduction française.
+  const samples = new Map(sampleProducts(HOUSE_SHOP_ID).map((p) => [p.id, p]));
+  for (const p of cache.products) {
+    p.category = legacyCategorySlugs[p.category] ?? p.category;
+    const sample = samples.get(p.id);
+    if (sample && p.sellerId === HOUSE_SHOP_ID && !p.fr) Object.assign(p, { title: sample.title, description: sample.description, features: sample.features, fr: sample.fr, category: sample.category });
+  }
+  const house = cache.shops.find((s) => s.id === HOUSE_SHOP_ID);
+  if (house?.description === "La sélection officielle Queennette.") house.description = "The official Queennette selection.";
   for (const o of cache.orders) {
     for (const i of o.items) {
       i.sellerId ??= cache.products.find((p) => p.id === i.productId)?.sellerId ?? HOUSE_SHOP_ID;
