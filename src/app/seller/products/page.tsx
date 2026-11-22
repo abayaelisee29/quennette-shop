@@ -19,7 +19,7 @@ export default async function SellerProductsPage({ searchParams }: { searchParam
   const { lang, t, fmt } = await getI18n();
   const sp = t.seller.products;
   const { filter = "all", q = "", saved: savedId } = await searchParams;
-  const all = listShopProducts(shop.id);
+  const all = await listShopProducts(shop.id);
   const needle = q.trim().toLowerCase();
   const items = all.filter(
     (p) =>

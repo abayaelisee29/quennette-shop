@@ -21,7 +21,7 @@ function distribution(product: Product, reviews: Review[]) {
 export async function ProductReviews({ product, user, filter, sort = "top", thanks }: Props) {
   const { t, fmt } = await getI18n();
   const rv = t.reviews;
-  const all = listReviews(product.id);
+  const all = await listReviews(product.id);
   const dist = distribution(product, all);
   const distTotal = Math.max(1, dist.reduce((a, b) => a + b, 0));
   const mine = user ? all.find((r) => r.userId === user.id) : undefined;

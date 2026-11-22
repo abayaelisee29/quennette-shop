@@ -6,7 +6,7 @@ import { findShop } from "./db";
 // Utilisateur connecté qui possède une boutique ; sinon redirige vers la création de boutique.
 export async function requireSeller(returnTo: string) {
   const user = await requireUser(returnTo);
-  const shop = user.shopId ? findShop(user.shopId) : undefined;
+  const shop = user.shopId ? await findShop(user.shopId) : undefined;
   if (!shop) redirect("/seller");
   return { user, shop };
 }

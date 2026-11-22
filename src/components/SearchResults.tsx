@@ -47,7 +47,7 @@ export async function SearchResults({ params, basePath, lockedCategory, lockedSh
   const { lang, t, fmt } = await getI18n();
   const s = t.search;
   const p = { ...params, ...(lockedCategory && { cat: lockedCategory }), ...(lockedShop && { shop: lockedShop }) };
-  const { items, total, page, pageCount, brands, categoryCounts, category: activeCat } = searchProducts(p, lang);
+  const { items, total, page, pageCount, brands, categoryCounts, category: activeCat } = await searchProducts(p, lang);
   const href = (changes: Partial<Record<keyof SearchParams, unknown>>) => hrefWith(basePath, p, changes, lockedCategory);
   const hasFilters = !!(p.brand?.length || p.min !== undefined || p.max !== undefined || p.rating || p.fast || p.deal || p.stock);
 

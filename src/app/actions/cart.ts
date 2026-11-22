@@ -15,7 +15,7 @@ function qty(v: FormDataEntryValue | null, fallback = 1) {
 
 async function add(form: FormData) {
   const id = String(form.get("productId"));
-  const product = getProduct(id, DEFAULT_LANG);
+  const product = await getProduct(id, DEFAULT_LANG);
   if (!product || product.stock === 0) return null;
   const cart = await readRawCart();
   cart[id] = Math.min(MAX_QTY, product.stock, (cart[id] ?? 0) + Math.max(1, qty(form.get("quantity"))));
@@ -60,7 +60,7 @@ export async function toggleWishlistAction(form: FormData) {
   const back = safeReturnPath(form.get("back"), `/product/${id}`);
   const user = await getCurrentUser();
   if (!user) redirect(`/signin?next=${encodeURIComponent(back)}`);
-  if (getProduct(id, DEFAULT_LANG)) await toggleWishlist(user.id, id);
+  if (await getProduct(id, DEFAULT_LANG)) await toggleWishlist(user.id, id);
   revalidatePath(back);
   revalidatePath("/wishlist");
 }
@@ -78,7 +78,7 @@ export async function moveWishToCart(form: FormData) {
 export async function addManyToCart(form: FormData) {
   const cart = await readRawCart();
   for (const id of form.getAll("productId").map(String)) {
-    const product = getProduct(id, DEFAULT_LANG);
+    const product = await getProduct(id, DEFAULT_LANG);
     if (!product || product.stock === 0) continue;
     cart[id] = Math.min(MAX_QTY, product.stock, (cart[id] ?? 0) + 1);
   }

@@ -18,7 +18,7 @@ export default async function SellerHome({ searchParams }: { searchParams: Promi
   const { t, fmt } = await getI18n();
   const ob = t.seller.onboarding;
   const d = t.seller.dashboard;
-  const shop = user.shopId ? findShop(user.shopId) : undefined;
+  const shop = user.shopId ? await findShop(user.shopId) : undefined;
 
   if (!shop) {
     return (
@@ -47,8 +47,8 @@ export default async function SellerHome({ searchParams }: { searchParams: Promi
   }
 
   const { welcome } = await searchParams;
-  const products = listShopProducts(shop.id);
-  const orders = listShopOrders(shop.id);
+  const products = await listShopProducts(shop.id);
+  const orders = await listShopOrders(shop.id);
   const myItems = orders.flatMap((o) => o.items.filter((i) => i.sellerId === shop.id).map((i) => ({ ...i, order: o })));
   const revenue = myItems.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const sold = myItems.reduce((s, i) => s + i.quantity, 0);

@@ -25,7 +25,7 @@ export async function createShopAction(_: SellerFormState, form: FormData): Prom
   if (name.length < 2 || name.length > 40) return { error: (await getI18n()).t.seller.errors.shopName, values };
   const base = slugify(name) || "shop";
   let slug = base;
-  for (let n = 2; findShopBySlug(slug); n++) slug = `${base}-${n}`;
+  for (let n = 2; await findShopBySlug(slug); n++) slug = `${base}-${n}`;
   await createShop({ id: newId("shop"), slug, name, description, ownerId: user.id, createdAt: new Date().toISOString() });
   redirect("/seller?welcome=1");
 }
@@ -45,7 +45,7 @@ export async function updateShopAction(_: SellerFormState, form: FormData): Prom
 export async function saveProductAction(_: SellerFormState, form: FormData): Promise<SellerFormState> {
   const { shop } = await requireSeller("/seller/products");
   const id = text(form, "id");
-  const existing = id ? findProduct(id) : undefined;
+  const existing = id ? await findProduct(id) : undefined;
   if (id && (!existing || existing.sellerId !== shop.id)) redirect("/seller/products");
 
   const values: Record<string, string> = {};

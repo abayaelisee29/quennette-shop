@@ -14,7 +14,7 @@ export async function submitReview(_: ReviewFormState, form: FormData): Promise<
   const user = await requireUser(`/product/${productId}/review`);
   const { lang, t } = await getI18n();
   const e = t.reviewForm.errors;
-  const product = getProduct(productId, lang);
+  const product = await getProduct(productId, lang);
   if (!product) redirect("/");
   if (user.shopId === product.sellerId) return { error: e.own };
 
@@ -26,7 +26,7 @@ export async function submitReview(_: ReviewFormState, form: FormData): Promise<
   if (title.length < 3 || title.length > 100) return { error: e.headline, values };
   if (body.length < 10 || body.length > 3000) return { error: e.body, values };
 
-  const existing = findUserReview(productId, user.id);
+  const existing = await findUserReview(productId, user.id);
   await upsertReview({
     id: existing?.id ?? newId("avis"),
     productId,
@@ -35,7 +35,7 @@ export async function submitReview(_: ReviewFormState, form: FormData): Promise<
     rating,
     title,
     body,
-    verified: hasPurchased(user.id, productId),
+    verified: await hasPurchased(user.id, productId),
   });
   revalidatePath("/", "layout");
   redirect(`/product/${productId}?review=thanks#reviews`);
@@ -43,14 +43,14 @@ export async function submitReview(_: ReviewFormState, form: FormData): Promise<
 
 export async function deleteReviewAction(form: FormData) {
   const user = await requireUser("/account");
-  const review = findReview(String(form.get("reviewId")));
+  const review = await findReview(String(form.get("reviewId")));
   if (review) await deleteReview(review.id, user.id);
   revalidatePath("/", "layout");
   redirect(review ? `/product/${review.productId}#reviews` : "/account");
 }
 
 export async function toggleHelpfulAction(form: FormData) {
-  const review = findReview(String(form.get("reviewId")));
+  const review = await findReview(String(form.get("reviewId")));
   if (!review) return;
   const user = await getCurrentUser();
   if (!user) redirect(`/signin?next=${encodeURIComponent(`/product/${review.productId}#reviews`)}`);

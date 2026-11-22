@@ -17,10 +17,10 @@ export default async function WriteReviewPage({ params }: { params: Promise<{ id
   const user = await requireUser(`/product/${id}/review`);
   const { lang, t } = await getI18n();
   const f = t.reviewForm;
-  const product = getProduct(id, lang);
+  const product = await getProduct(id, lang);
   if (!product) notFound();
-  const existing = findUserReview(id, user.id);
-  const bought = hasPurchased(user.id, id);
+  const existing = await findUserReview(id, user.id);
+  const bought = await hasPurchased(user.id, id);
   const own = user.shopId === product.sellerId;
 
   return (

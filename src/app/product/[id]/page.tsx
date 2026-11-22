@@ -27,7 +27,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { lang, t } = await getI18n();
-  const p = getProduct((await params).id, lang);
+  const p = await getProduct((await params).id, lang);
   return p ? { title: p.title, description: p.description } : { title: t.product.notFound };
 }
 
@@ -40,18 +40,18 @@ function deliveryDate(days: number, locale: string) {
 export default async function ProductPage({ params, searchParams }: Props) {
   const { lang, t, fmt } = await getI18n();
   const tp = t.product;
-  const p = getProduct((await params).id, lang);
+  const p = await getProduct((await params).id, lang);
   if (!p) notFound();
   const user = await getCurrentUser();
   const cat = getCategory(p.category, lang)!;
-  const products = getProducts(lang);
-  const shopInfo = findShop(p.sellerId);
+  const products = await getProducts(lang);
+  const shopInfo = await findShop(p.sellerId);
   const sameBrand = products.filter((x) => x.brand === p.brand && x.id !== p.id);
   const freeShipping = p.price >= shop.freeShippingFrom;
   const sp = await searchParams;
   const note = Number(sp.review_rating) || undefined;
-  const also = alsoBought(p, lang);
-  const together = boughtTogether(p, lang);
+  const also = await alsoBought(p, lang);
+  const together = await boughtTogether(p, lang);
   const recent = (await recentlyViewed(lang, p.id)).slice(0, 14);
 
   return (
