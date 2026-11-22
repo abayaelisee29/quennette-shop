@@ -5,10 +5,10 @@ import { addManyToCart } from "@/app/actions/cart";
 import { OrderSummary } from "@/components/OrderSummary";
 import { ProductImage } from "@/components/ProductImage";
 import { requireUser } from "@/lib/auth";
-import { getProduct } from "@/lib/catalog";
+import { productLookup } from "@/lib/catalog";
 import { fill } from "@/lib/i18n";
 import { getI18n, type Formatters } from "@/lib/i18n/server";
-import { findOrder, findShop, findUserReview, type OrderItem } from "@/lib/db";
+import { findOrder, findShop, listUserReviews, type OrderItem } from "@/lib/db";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getI18n()).t.tracking.pageTitle };
@@ -49,6 +49,12 @@ export default async function OrderTrackingPage({ params }: { params: Promise<{ 
   eta.setDate(eta.getDate() + 3);
   const count = order.items.reduce((s, i) => s + i.quantity, 0);
   const paid = order.status === "payee";
+  // Données lues en une fois avant l'affichage : boutiques, produits et avis déjà écrits.
+  const [shops, getProduct, myReviews] = await Promise.all([
+    Promise.all([...parcels.keys()].map(findShop)).then((list) => new Map(list.filter((s) => s !== undefined).map((s) => [s.id, s]))),
+    productLookup(lang),
+    listUserReviews(user.id).then((list) => new Set(list.map((r) => r.productId))),
+  ]);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -80,7 +86,7 @@ export default async function OrderTrackingPage({ params }: { params: Promise<{ 
           const delivered = items.every((i) => i.shipStatus === "livree");
           const shipped = items.every((i) => i.shipStatus !== "a_preparer");
           const first = items[0];
-          const shop = findShop(sellerId);
+          const shop = shops.get(sellerId);
           return (
             <section key={sellerId} className="rounded-card border border-line bg-surface p-5">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -116,8 +122,8 @@ export default async function OrderTrackingPage({ params }: { params: Promise<{ 
               )}
               <ul className="divide-y divide-line">
                 {items.map((i) => {
-                  const p = getProduct(i.productId, lang);
-                  const reviewed = findUserReview(i.productId, user.id);
+                  const p = getProduct(i.productId);
+                  const reviewed = myReviews.has(i.productId);
                   return (
                     <li key={i.productId} className="flex gap-4 py-3">
                       <div className="w-20 shrink-0 [container-type:inline-size]">

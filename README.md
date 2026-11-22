@@ -44,7 +44,7 @@ Pour utiliser Stripe en mode test :
 - Vitrine publique de chaque boutique : `/shop/[nom]`, avec recherche et filtres
 - Le catalogue d'exemple appartient à la boutique maison « Queennette » (`/shop/queennette`)
 
-Les photos sont enregistrées dans `data/uploads/` et servies par `/api/images/…`.
+Les photos sont enregistrées dans Supabase Storage (ou, sans Supabase, dans `data/uploads/` et servies par `/api/images/…`).
 
 ## Étape 4 : avis, recommandations, suivi
 
@@ -80,11 +80,33 @@ Le site s'affiche en anglais (marché américain, prix en dollars). Le bouton **
 - La recherche trouve un produit qu'on tape en anglais ou en français (« headphones » comme « casque »).
 - Les anciennes adresses françaises (`/panier`, `/produit/…`, `/categorie/maison`…) redirigent vers les nouvelles.
 
-### Données
+## Base de données : Supabase (PostgreSQL)
 
-Les produits, boutiques, comptes et commandes sont enregistrés dans `data/db.json` (créé automatiquement, ignoré par git).
-Au premier lancement, le catalogue d'exemple y est importé. Pour repartir de zéro, supprimez le dossier `data/`.
-C'est suffisant pour développer en local ; avant une mise en ligne, `src/lib/db.ts` sera branché sur Supabase/PostgreSQL.
+Le site a deux moteurs de stockage, avec exactement les mêmes fonctions (`src/lib/db.ts`) :
+
+- **Supabase** dès que `SUPABASE_URL` et `SUPABASE_SECRET_KEY` sont définis : comptes, sessions, boutiques, produits,
+  commandes, avis et listes d'envies sont dans PostgreSQL ; les photos produits vont dans Supabase Storage (seau `product-images`).
+- **Fichier local** `data/db.json` sinon (créé automatiquement, ignoré par git) : pratique pour essayer le site sans rien installer.
+  Pour repartir de zéro, supprimez le dossier `data/`.
+
+Dans les deux cas, le catalogue d'exemple (boutique « Queennette ») est importé automatiquement au premier lancement.
+
+### Brancher Supabase
+
+1. Créez un compte gratuit sur https://supabase.com, puis un projet (notez le mot de passe de la base dans un endroit sûr).
+2. Dans le projet : **SQL Editor** > **New query**, collez tout le fichier
+   [`supabase/migrations/20261122000000_queennette_init.sql`](supabase/migrations/20261122000000_queennette_init.sql), puis **Run**.
+   Il crée les tables, les fonctions et le seau de photos ; on peut le relancer sans danger.
+3. Récupérez l'adresse du projet (**Project URL**, `https://xxxx.supabase.co`) et une **clé secrète**
+   (Project Settings > API Keys > Secret keys, `sb_secret_...` ; l'ancienne clé `service_role` marche aussi).
+4. En local : mettez-les dans `.env.local` (voir `.env.example`). En ligne : dans les variables d'environnement de Vercel.
+
+**Sécurité** : la clé secrète donne tous les droits sur la base. Elle ne doit être que dans `.env.local` ou dans Vercel,
+jamais dans le code, sur GitHub ou dans un message. Elle n'est utilisée que par le serveur (`src/lib/supabase.ts`), jamais envoyée au navigateur.
+Toutes les tables ont la sécurité par ligne (RLS) activée sans règle publique : la clé publique (anon/publishable) ne peut rien lire.
+
+Les opérations sensibles sont faites en une seule transaction par des fonctions SQL : paiement d'une commande
+(statut + baisse du stock, une seule fois), création de commande, avis et note moyenne, liste d'envies.
 
 ## Lancer en local
 
@@ -110,4 +132,4 @@ Les composants n'utilisent que des couleurs du thème (`bg-brand`, `text-muted`,
 
 ## Prochaines étapes
 
-Les 5 étapes du plan sont terminées. Suites possibles : base Supabase pour la mise en ligne, déploiement, e-mails de confirmation.
+Les 5 étapes du plan sont terminées. Base Supabase : prête (voir plus haut). Suites : Stripe en vrai, déploiement sur Vercel, e-mails de confirmation.

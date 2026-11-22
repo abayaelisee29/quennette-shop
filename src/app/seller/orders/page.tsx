@@ -21,7 +21,7 @@ export default async function SellerOrdersPage({ searchParams }: { searchParams:
   const { t, fmt } = await getI18n();
   const so = t.seller.orders;
   const { status = "all" } = await searchParams;
-  const orders = listShopOrders(shop.id).map((o) => {
+  const orders = (await listShopOrders(shop.id)).map((o) => {
     const items = o.items.filter((i) => i.sellerId === shop.id);
     return { ...o, mine: items, shipStatus: items[0].shipStatus, tracking: items[0].trackingNumber, amount: items.reduce((s, i) => s + i.unitPrice * i.quantity, 0) };
   });

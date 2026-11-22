@@ -7,7 +7,7 @@ export default async function SellerLayout({ children }: { children: React.React
   const { t } = await getI18n();
   const nav = t.seller.nav;
   const user = await getCurrentUser();
-  const shop = user?.shopId ? findShop(user.shopId) : undefined;
+  const shop = user?.shopId ? await findShop(user.shopId) : undefined;
   return (
     <div className="min-h-[70vh] bg-page">
       <div className="border-b border-line bg-surface">

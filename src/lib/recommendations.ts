@@ -1,6 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { getProduct, getProducts, type Product } from "./catalog";
+import { getProducts, productLookup, type Product } from "./catalog";
 import { coPurchaseCounts, purchasedProductIds, type User } from "./db";
 import type { Lang } from "./i18n";
 
@@ -17,31 +17,32 @@ export async function recentlyViewedIds() {
 }
 
 export async function recentlyViewed(lang: Lang, excludeId?: string) {
+  const get = await productLookup(lang);
   return (await recentlyViewedIds())
     .filter((id) => id !== excludeId)
-    .map((id) => getProduct(id, lang))
+    .map(get)
     .filter((p): p is Product => !!p);
 }
 
 // « Les clients ayant acheté cet article ont également acheté » :
 // d'abord les vrais achats communs, puis complété par les meilleurs produits de la même catégorie.
-export function alsoBought(product: Product, lang: Lang, limit = 14) {
-  const co = coPurchaseCounts(product.id);
+export async function alsoBought(product: Product, lang: Lang, limit = 14) {
+  const [co, get] = await Promise.all([coPurchaseCounts(product.id), productLookup(lang)]);
   const bought = [...co.entries()]
     .sort((a, b) => b[1] - a[1])
-    .map(([id]) => getProduct(id, lang))
+    .map(([id]) => get(id))
     .filter((p): p is Product => !!p);
   const seen = new Set([product.id, ...bought.map((p) => p.id)]);
-  const fill = getProducts(lang)
+  const fill = (await getProducts(lang))
     .filter((p) => !seen.has(p.id) && p.category === product.category)
     .sort((a, b) => popularity(b) - popularity(a));
   return [...bought, ...fill].slice(0, limit);
 }
 
 // « Fréquemment achetés ensemble » : 2 articles complémentaires, en stock, d'une autre gamme de prix si possible.
-export function boughtTogether(product: Product, lang: Lang) {
-  const co = coPurchaseCounts(product.id);
-  const candidates = getProducts(lang).filter((p) => p.id !== product.id && p.stock > 0);
+export async function boughtTogether(product: Product, lang: Lang) {
+  const co = await coPurchaseCounts(product.id);
+  const candidates = (await getProducts(lang)).filter((p) => p.id !== product.id && p.stock > 0);
   const score = (p: Product) =>
     (co.get(p.id) ?? 0) * 1000 + (p.category === product.category ? 50 : 0) + (p.brand === product.brand ? 20 : 0) + (p.price < product.price ? 10 : 0) + popularity(p) / 10000;
   return candidates.sort((a, b) => score(b) - score(a)).slice(0, 2);
@@ -50,8 +51,8 @@ export function boughtTogether(product: Product, lang: Lang) {
 // « Recommandé pour vous » : catégories et marques des articles consultés, achetés ou en liste d'envies.
 export async function forYou(lang: Lang, user?: User, limit = 14) {
   const recent = await recentlyViewed(lang);
-  const get = (id: string) => getProduct(id, lang);
-  const signals = [...recent, ...(user?.wishlist ?? []).map(get), ...(user ? purchasedProductIds(user.id).map(get) : [])].filter(
+  const [get, purchased] = await Promise.all([productLookup(lang), user ? purchasedProductIds(user.id) : Promise.resolve([])]);
+  const signals = [...recent, ...(user?.wishlist ?? []).map(get), ...purchased.map(get)].filter(
     (p): p is Product => !!p
   );
   if (!signals.length) return [];
@@ -62,9 +63,9 @@ export async function forYou(lang: Lang, user?: User, limit = 14) {
     catWeight.set(p.category, (catWeight.get(p.category) ?? 0) + w);
     brandWeight.set(p.brand, (brandWeight.get(p.brand) ?? 0) + w);
   });
-  const exclude = new Set([...signals.map((p) => p.id), ...(user ? purchasedProductIds(user.id) : [])]);
+  const exclude = new Set([...signals.map((p) => p.id), ...purchased]);
   const score = (p: Product) => (catWeight.get(p.category) ?? 0) * 3 + (brandWeight.get(p.brand) ?? 0) * 2 + p.rating / 5 + Math.log10(1 + p.reviewCount) / 4;
-  return getProducts(lang)
+  return (await getProducts(lang))
     .filter((p) => !exclude.has(p.id) && p.stock > 0)
     .sort((a, b) => score(b) - score(a))
     .slice(0, limit);

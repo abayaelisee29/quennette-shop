@@ -12,14 +12,14 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const shop = findShopBySlug((await params).slug);
+  const shop = await findShopBySlug((await params).slug);
   const { t } = await getI18n();
   return { title: shop ? fill(t.shopPage.title, { name: shop.name }) : t.shopPage.label };
 }
 
 export default async function ShopPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const shop = findShopBySlug(slug);
+  const shop = await findShopBySlug(slug);
   if (!shop) notFound();
   const { t, fmt } = await getI18n();
   return (

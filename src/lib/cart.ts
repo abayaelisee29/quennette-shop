@@ -1,6 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { getProduct, type Product } from "./catalog";
+import { productLookup, type Product } from "./catalog";
 import { shop } from "./config";
 import { DEFAULT_LANG, type Lang } from "./i18n";
 
@@ -35,8 +35,9 @@ export function shippingFor(subtotal: number) {
 export async function getCart(lang: Lang = DEFAULT_LANG) {
   const raw = await readRawCart();
   const lines: CartLine[] = [];
+  const getProduct = await productLookup(lang);
   for (const [id, q] of Object.entries(raw)) {
-    const product = getProduct(id, lang);
+    const product = getProduct(id);
     const quantity = Math.min(MAX_QTY, Math.max(0, Math.floor(Number(q))));
     if (!product || !quantity) continue;
     lines.push({ product, quantity, lineTotal: Math.round(product.price * quantity * 100) / 100 });

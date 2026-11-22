@@ -5,7 +5,7 @@ import { Price } from "@/components/Price";
 import { ProductImage } from "@/components/ProductImage";
 import { Stars } from "@/components/Stars";
 import { requireUser } from "@/lib/auth";
-import { getProduct } from "@/lib/catalog";
+import { productLookup } from "@/lib/catalog";
 import { plural } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 
@@ -17,7 +17,8 @@ export default async function WishlistPage() {
   const user = await requireUser("/wishlist");
   const { lang, t } = await getI18n();
   const w = t.wishlist;
-  const items = user.wishlist.map((id) => getProduct(id, lang)).filter((p) => p !== undefined);
+  const getProduct = await productLookup(lang);
+  const items = user.wishlist.map(getProduct).filter((p) => p !== undefined);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">

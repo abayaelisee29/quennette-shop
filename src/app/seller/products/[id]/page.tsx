@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { shop } = await requireSeller(`/seller/products/${id}`);
-  const product = findProduct(id);
+  const product = await findProduct(id);
   if (!product || product.sellerId !== shop.id) notFound();
   const { lang, t } = await getI18n();
   const f = t.seller.form;

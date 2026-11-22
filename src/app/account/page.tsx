@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { signOut } from "@/app/actions/auth";
 import { requireUser } from "@/lib/auth";
-import { getProduct } from "@/lib/catalog";
+import { productLookup } from "@/lib/catalog";
 import { fill, plural } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { listOrders } from "@/lib/db";
@@ -15,7 +15,7 @@ export default async function AccountPage() {
   const user = await requireUser("/account");
   const { lang, t, fmt } = await getI18n();
   const a = t.account;
-  const orders = await listOrders(user.id);
+  const [orders, getProduct] = await Promise.all([listOrders(user.id), productLookup(lang)]);
   const paid = orders.filter((o) => o.status === "payee");
 
   return (
@@ -105,7 +105,7 @@ export default async function AccountPage() {
                   <ul className="space-y-2">
                     {o.items.map((i) => (
                       <li key={i.productId} className="flex items-center gap-3 text-sm">
-                        <span className="text-2xl">{getProduct(i.productId, lang)?.emoji ?? "📦"}</span>
+                        <span className="text-2xl">{getProduct(i.productId)?.emoji ?? "📦"}</span>
                         <Link href={`/product/${i.productId}`} className="flex-1 text-link hover:underline">
                           {i.title}
                         </Link>

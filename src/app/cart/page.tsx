@@ -20,10 +20,10 @@ export default async function CartPage({ searchParams }: { searchParams: Promise
   const { lang, t, fmt } = await getI18n();
   const c = t.cart;
   const [cart, user] = await Promise.all([getCart(lang), getCurrentUser()]);
-  const added = addedId ? getProduct(addedId, lang) : undefined;
+  const added = addedId ? await getProduct(addedId, lang) : undefined;
   const missing = shop.freeShippingFrom - cart.subtotal;
   const inCart = new Set(cart.lines.map((l) => l.product.id));
-  const suggestions = getProducts(lang)
+  const suggestions = (await getProducts(lang))
     .filter((p) => !inCart.has(p.id) && (cart.lines.some((l) => l.product.category === p.category) || !cart.lines.length))
     .sort((a, b) => b.reviewCount - a.reviewCount)
     .slice(0, 12);

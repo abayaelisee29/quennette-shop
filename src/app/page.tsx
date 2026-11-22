@@ -11,7 +11,7 @@ import { forYou, recentlyViewed } from "@/lib/recommendations";
 export default async function Home() {
   const { lang, t, fmt } = await getI18n();
   const h = t.home;
-  const products = getProducts(lang);
+  const products = await getProducts(lang);
   const user = await getCurrentUser();
   const [recent, recommended] = await Promise.all([recentlyViewed(lang), forYou(lang, user)]);
   const bestSellers = [...products].sort((a, b) => b.reviewCount - a.reviewCount).slice(0, 14);

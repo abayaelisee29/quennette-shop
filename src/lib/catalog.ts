@@ -1,21 +1,35 @@
 import "server-only";
+import { cache } from "react";
 import { categoryDefs, getCategories, getCategory } from "./categories";
-import { findProduct, listActiveProducts } from "./db";
+import { listActiveProducts } from "./db";
 import type { Lang } from "./i18n";
 import { localizeProduct, type Product } from "./products";
 
 export { getCategories, getCategory } from "./categories";
 export { discountPercent, type Product } from "./products";
 
-// Produits en vente (statut « actif »), toutes boutiques confondues, dans la langue demandée.
-export function getProducts(lang: Lang): Product[] {
-  return listActiveProducts().map((p) => localizeProduct(p, lang));
+// Produits en vente (statut « actif »), lus une seule fois par page affichée.
+const activeProducts = cache(() => listActiveProducts());
+const activeById = cache(async () => new Map((await activeProducts()).map((p) => [p.id, p])));
+
+// Produits en vente, toutes boutiques confondues, dans la langue demandée.
+export async function getProducts(lang: Lang): Promise<Product[]> {
+  return (await activeProducts()).map((p) => localizeProduct(p, lang));
 }
 
 // Un produit visible publiquement (les brouillons sont exclus).
-export function getProduct(id: string, lang: Lang) {
-  const p = findProduct(id);
-  return p && p.status === "actif" ? localizeProduct(p, lang) : undefined;
+export async function getProduct(id: string, lang: Lang) {
+  const p = (await activeById()).get(id);
+  return p ? localizeProduct(p, lang) : undefined;
+}
+
+// Pour chercher beaucoup de produits d'un coup dans une page : renvoie une fonction de recherche immédiate.
+export async function productLookup(lang: Lang) {
+  const byId = await activeById();
+  return (id: string) => {
+    const p = byId.get(id);
+    return p ? localizeProduct(p, lang) : undefined;
+  };
 }
 
 // ---------- Recherche et filtres ----------
@@ -68,13 +82,13 @@ export function parseSearchParams(raw: Record<string, string | string[] | undefi
   };
 }
 
-export function searchProducts(params: SearchParams, lang: Lang) {
+export async function searchProducts(params: SearchParams, lang: Lang) {
   const terms = params.q ? normalize(params.q).split(/\s+/).filter(Boolean) : [];
   const catNames = new Map(categoryDefs.map((c) => [c.slug, `${c.en.name} ${c.fr.name}`]));
 
   // Base : texte + catégorie. Les facettes (marques, fourchettes) sont calculées sur cette base.
   // La recherche porte sur l'anglais et le français, quelle que soit la langue affichée.
-  const base = listActiveProducts()
+  const base = (await activeProducts())
     .map((raw) => {
       if (params.cat && raw.category !== params.cat) return null;
       if (params.shop && raw.sellerId !== params.shop) return null;
